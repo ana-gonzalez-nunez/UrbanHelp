@@ -1,0 +1,164 @@
+/* Estilos Globales */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Usamos una fuente sans-serif limpia y moderna */
+}
+
+body, html {
+    height: 100%;
+    width: 100%;
+}
+
+/* 1. Fondo de la Página con el Gradiente Púrpura-Azul de tu imagen */
+body {
+    background: linear-gradient(135deg, #829845 0%, #588ba9 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 2. Tarjeta Principal Ajustada y Espaciosa */
+.login-card {
+    background-color: white; /* Tarjeta blanca como en la imagen */
+    width: 120%;
+    max-width: 950px; /* Un poco más ancha para dar aire */
+    min-height: 500px;
+    border-radius: 25px; /* Bordes redondeados sutiles */
+    display: flex; /* Usamos flexbox para dividir las dos secciones */
+    overflow: hidden; /* Asegura que los bordes redondeados corten el contenido interior */
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2); /* Sombra suave para elevación */
+}
+
+/* 3. Sección Izquierda (Logo UrbanHelp) */
+.login-decoration {
+    flex: 1; /* Ocupa la mitad del espacio */
+    background-color: transparent; /* Fondo transparente dentro de la tarjeta blanca */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px; /* Espacio para que el círculo no toque los bordes */
+}
+
+.circles-background {
+    width: 350px; /* Tamaño del círculo de fondo gris claro */
+    height: 350px;
+    background-color: #f1f3f6; /* Fondo gris claro del círculo como en tu imagen */
+    border-radius: 50%; /* Círculo perfecto */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden; /* Mantiene el logo dentro del círculo */
+}
+
+.laptop-icon {
+    width: 100%; /* Ajusta esto si el logo se ve muy pequeño o grande */
+    height: auto;
+    object-fit: contain; /* Evita que la imagen se deforme */
+}
+
+/* 4. Sección Derecha (Formulario de Login) */
+.login-form-container {
+    flex: 1; /* Ocupa la otra mitad */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 60px; /* Mucho espacio interno para que respire */
+    text-align: center;
+}
+
+.login-form-container h2 {
+    font-size: 32px;
+    color: #222;
+    margin-bottom: 40px; /* Más espacio bajo el título */
+    font-weight: 700;
+}
+
+/* 5. Inputs y Grupos */
+.input-group {
+    position: relative;
+    margin-bottom: 20px; /* Separación entre Email y Password */
+}
+
+.input-group i {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #595959; /* Gris más oscuro para pasar el test 4.5:1 */
+}
+
+.input-group input {
+    width: 100%;
+    padding: 18px 20px 18px 55px; /* Más padding para que se vea premium y para el icono */
+    background-color: #f1f3f6; /* Fondo gris claro igual que el círculo */
+    border: none;
+    border-radius: 35px; /* Bordes muy redondeados */
+    font-size: 16px;
+    color: #222;
+    transition: all 0.3s ease; /* Transición suave para hover y focus */
+}
+
+.input-group input:focus {
+    outline: none; /* Elimina el borde de enfoque por defecto */
+    background-color: #e8eaf0; /* Fondo ligeramente diferente al hacer foco */
+    box-shadow: 0 0 10px rgba(167, 60, 250, 0.2); /* Sombra sutil de color */
+}
+.input-group input::placeholder {
+    color: #636363; /* Gris oscuro que cumple con el contraste sobre #f1f3f6 */
+    opacity: 1; /* Asegura que el color se aplique bien en todos los navegadores */
+}
+
+/* 6. Botón de Login (Verde Lima) */
+.login-button {
+    width: 100%;
+    padding: 18px;
+    background-color: #79C34F; /* Color verde lima de tu imagen */
+    border: none;
+    border-radius: 35px;
+    color: #1A1A1A;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: background 0.3s ease, transform 0.2s ease; /* Transición suave para hover */
+}
+
+.login-button:hover {
+    background-color: #69ae42; /* Tono de verde ligeramente más oscuro al pasar el ratón */
+    transform: translateY(-2px); /* Efecto de elevación sutil */
+}
+
+/* 7. Enlaces inferiores */
+.forgot-password {
+    display: block;
+    text-align: center;
+    font-size: 14px;
+    color: #5d5d5d; /* Antes era #888, ahora es más oscuro para ser accesible */
+    text-decoration: none;
+    margin-top: 15px;
+}
+
+.create-account {
+    display: block;
+    text-align: center;
+    font-size: 15px;
+    color: #2c39c1; /* Azul más intenso para resaltar sobre blanco */
+    text-decoration: none;
+    margin-top: 50px;
+    font-weight: 600;
+}
+
+.forgot-password:hover,
+.create-account:hover {
+    text-decoration: underline; /* Subraya al pasar el ratón */
+    color: #333;
+}
+
+.create-account {
+    margin-top: auto; /* Empuja el enlace hasta la parte inferior del contenedor flex */
+    padding-top: 50px;
+    color: #555;
+    font-weight: 600;
+}
