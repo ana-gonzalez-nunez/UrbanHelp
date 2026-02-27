@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor Municipal - Sistema Completo</title>
+    <title>Dashboard del Técnico - Gestión de Incidencias</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/latest/umd/lucide.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -69,12 +68,18 @@
     <script>
         // ============= TODOS LOS DATOS MOCK DEL CÓDIGO ORIGINAL =============
         const mockIncidencias = [
-            { id: 'INC001', titulo: 'Farola fundida en Calle Mayor', descripcion: 'La farola número 45 de Calle Mayor no funciona desde hace una semana.', categoria: 'alumbrado', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Calle Mayor, 45', ciudadanoNombre: 'María García López', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-20T10:30:00', notas: ['Técnico asignado', 'Material solicitado'] },
-            { id: 'INC002', titulo: 'Contenedores desbordados', descripcion: 'Los contenedores de basura en Plaza España llevan varios días sin recoger.', categoria: 'limpieza', estado: 'resuelta', prioridad: 'urgente', ubicacion: 'Plaza España', ciudadanoNombre: 'Juan Martínez Sánchez', tecnicoAsignadoNombre: 'Ana Fernández', fechaCreacion: '2026-02-18T08:15:00', notas: ['Servicio notificado', 'Incidencia resuelta'] },
-            { id: 'INC003', titulo: 'Banco roto en el Retiro', descripcion: 'Banco de madera roto y con riesgo de astillas.', categoria: 'mobiliario', estado: 'pendiente', prioridad: 'media', ubicacion: 'Parque del Retiro', ciudadanoNombre: 'Laura Pérez Díaz', fechaCreacion: '2026-02-24T09:45:00', notas: [] },
-            { id: 'INC004', titulo: 'Bache en Av. Libertad', descripcion: 'Bache de gran tamaño en el carril derecho.', categoria: 'vias', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Avenida Libertad, km 2.3', ciudadanoNombre: 'Pedro González Ruiz', tecnicoAsignadoNombre: 'Miguel Ángel Torres', fechaCreacion: '2026-02-21T16:20:00', notas: ['Inspección realizada'] },
-            { id: 'INC005', titulo: 'Parada sin marquesina', descripcion: 'Fue vandalizada y retirada.', categoria: 'transporte', estado: 'pendiente', prioridad: 'media', ubicacion: 'Parada 234 - Calle Alcalá', ciudadanoNombre: 'Carmen Ruiz Moreno', fechaCreacion: '2026-02-23T12:00:00', notas: [] },
-            { id: 'INC010', titulo: 'Alcantarilla sin tapa', descripcion: 'Alcantarilla descubierta en zona de paso.', categoria: 'vias', estado: 'resuelta', prioridad: 'urgente', ubicacion: 'Calle Bravo Murillo, 156', ciudadanoNombre: 'Francisco Jiménez', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-23T14:30:00', notas: ['Tapa reemplazada'] }
+            { id: 'INC001', titulo: 'Farola fundida en Calle Mayor', descripcion: 'La farola número 45 de Calle Mayor no funciona desde hace una semana. Se requiere cambio de bombilla o revisión de circuito.', categoria: 'alumbrado', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Calle Mayor, 45', ciudadanoNombre: 'María García López', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-20T10:30:00', notas: ['Técnico asignado', 'Material solicitado'] },
+            { id: 'INC002', titulo: 'Contenedores desbordados', descripcion: 'Los contenedores de basura en Plaza España llevan varios días sin recoger.', categoria: 'limpieza', estado: 'resuelta', prioridad: 'urgente', ubicacion: 'Plaza España', ciudadanoNombre: 'Juan Martínez', tecnicoAsignadoNombre: 'Ana Fernández', fechaCreacion: '2026-02-18T08:15:00', notas: ['Servicio notificado', 'Incidencia resuelta'] },
+            { id: 'INC003', titulo: 'Banco roto en el Retiro', descripcion: 'Banco de madera roto y con riesgo de astillas en la zona infantil.', categoria: 'mobiliario', estado: 'pendiente', prioridad: 'media', ubicacion: 'Parque del Retiro', ciudadanoNombre: 'Laura Pérez', fechaCreacion: '2026-02-24T09:45:00', notas: [] },
+            { id: 'INC004', titulo: 'Bache en Av. Libertad', descripcion: 'Bache de gran tamaño en el carril derecho que pone en riesgo los vehículos.', categoria: 'vias', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Avenida Libertad, km 2.3', ciudadanoNombre: 'Pedro González', tecnicoAsignadoNombre: 'Miguel Ángel Torres', fechaCreacion: '2026-02-21T16:20:00', notas: ['Inspección realizada'] },
+            { id: 'INC005', titulo: 'Grifería sin agua en parque infantil', descripcion: 'Las fuentes de agua del parque infantil no están funcionando.', categoria: 'parques', estado: 'en_proceso', prioridad: 'media', ubicacion: 'Parque Infantil - Zona Norte', ciudadanoNombre: 'Roberto Sánchez', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-25T13:00:00', notas: ['Válvula reabierta'] },
+            { id: 'INC006', titulo: 'Cartel publicitario desprendido', descripcion: 'Un cartel publicitario se desprendió en la zona comercial.', categoria: 'mobiliario', estado: 'resuelta', prioridad: 'alta', ubicacion: 'Calle Comercio, 23', ciudadanoNombre: 'Susana López', tecnicoAsignadoNombre: 'Miguel Ángel Torres', fechaCreacion: '2026-02-19T15:30:00', notas: ['Cartel asegurado', 'Zona verificada'] },
+            { id: 'INC007', titulo: 'Árbol caído en Parque Central', descripcion: 'Árbol de gran tamaño caído que bloquea paso peatonal.', categoria: 'parques', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Parque Central - Entrada Sur', ciudadanoNombre: 'Francisco Ruiz', tecnicoAsignadoNombre: 'Ana Fernández', fechaCreacion: '2026-02-26T10:00:00', notas: ['Maderera solicitada'] },
+            { id: 'INC008', titulo: 'Semáforo amarillo siempre encendido', descripcion: 'El semáforo en la intersección de Av. Principal no cambia de color.', categoria: 'alumbrado', estado: 'pendiente', prioridad: 'media', ubicacion: 'Av. Principal - Calle 5', ciudadanoNombre: 'Ángel Moreno', fechaCreacion: '2026-02-26T14:30:00', notas: [] },
+            { id: 'INC009', titulo: 'Fugas de agua en Calle Norte', descripcion: 'Se detectó fuga importante de agua potable en la acera.', categoria: 'infraestructura', estado: 'resuelta', prioridad: 'urgente', ubicacion: 'Calle Norte, 156', ciudadanoNombre: 'Valentina Costa', tecnicoAsignadoNombre: 'Miguel Ángel Torres', fechaCreacion: '2026-02-15T11:30:00', notas: ['Tubería reparada', 'Prueba completada'] },
+            { id: 'INC010', titulo: 'Papelera rota en plaza', descripcion: 'Papelera pública rota y sin posibilidad de uso normal.', categoria: 'mobiliario', estado: 'pendiente', prioridad: 'media', ubicacion: 'Plaza Mayor', ciudadanoNombre: 'Dolores Ruiz', fechaCreacion: '2026-02-25T12:00:00', notas: [] },
+            { id: 'INC011', titulo: 'Grietas en acera peatonal', descripcion: 'Grietas peligrosas detectadas en la acera de la zona residencial.', categoria: 'vias', estado: 'en_proceso', prioridad: 'media', ubicacion: 'Calle Residencial, 34', ciudadanoNombre: 'Guillermo Torres', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-23T09:00:00', notas: ['Inspección realizada'] },
+            { id: 'INC012', titulo: 'Jardinería necesaria - Poda urgente', descripcion: 'Árboles necesitan poda urgente para evitar ramas peligrosas.', categoria: 'parques', estado: 'resuelta', prioridad: 'media', ubicacion: 'Avenida Arboleda', ciudadanoNombre: 'Elena García', tecnicoAsignadoNombre: 'Ana Fernández', fechaCreacion: '2026-02-14T08:00:00', notas: ['Poda completada'] }
         ];
 
         const mockUsuarios = [
@@ -141,9 +146,18 @@
 
             container.innerHTML = `
                 <div class="space-y-8 fade-in">
-                    <div>
-                        <h1 class="text-3xl font-bold tracking-tight text-gray-900">Panel de Control</h1>
-                        <p class="text-gray-500 mt-1">Resumen general del estado del municipio.</p>
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+                        <div>
+                            <h1 class="text-3xl font-bold tracking-tight text-gray-900">Panel de Control</h1>
+                            <p class="text-gray-500 mt-1">Resumen general del estado del municipio.</p>
+                        </div>
+                        <div class="hidden md:flex items-center gap-3 bg-gradient-to-br from-indigo-200 via-blue-200 to-cyan-200 text-indigo-700 px-6 py-3 rounded-xl shadow-lg">
+                            <i data-lucide="clipboard-list" class="h-6 w-6"></i>
+                            <div class="text-right">
+                                <p class="text-xs opacity-80 font-medium">Total activas</p>
+                                <p class="text-2xl font-bold">${stats.total}</p>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
