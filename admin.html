@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor Municipal - Sistema Completo</title>
+    <title>Gestor Municipal Pro - v3.0 Completa</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -11,10 +12,13 @@
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .active-nav { background-color: #eff6ff; color: #1d4ed8; font-weight: 500; }
-        .modal { display: none; background: rgba(0,0,0,0.5); }
+        .modal { display: none; background: rgba(0, 0, 0, 0.5); }
         .modal.active { display: flex; }
+        .fade-in { animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
+
 <body class="bg-gray-50 text-gray-900">
 
     <div id="backdrop" class="fixed inset-0 bg-black/50 z-40 hidden lg:hidden" onclick="toggleSidebar()"></div>
@@ -25,9 +29,8 @@
                 <h1 class="font-bold text-xl text-blue-600">Gestor Municipal</h1>
                 <p class="text-xs text-gray-500 uppercase tracking-widest mt-1">Panel de Administración</p>
             </div>
-            
-            <nav class="flex-1 p-4 space-y-1 overflow-y-auto" id="nav-links">
-                </nav>
+
+            <nav class="flex-1 p-4 space-y-1 overflow-y-auto" id="nav-links"></nav>
 
             <div class="p-4 border-t border-gray-100">
                 <div class="flex items-center gap-3 px-3 py-2 mb-2">
@@ -46,67 +49,59 @@
 
     <div class="lg:pl-64 min-h-screen flex flex-col">
         <header class="sticky top-0 z-30 lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-            <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-100 rounded-lg">
-                <i data-lucide="menu" class="w-6 h-6"></i>
-            </button>
+            <button onclick="toggleSidebar()" class="p-2 hover:bg-gray-100 rounded-lg"><i data-lucide="menu"></i></button>
             <span class="font-bold text-blue-600">MuniciPanel</span>
             <div class="w-10"></div>
         </header>
 
-        <main class="p-4 lg:p-8 flex-1" id="app-container">
-            </main>
+        <main class="p-4 lg:p-8 flex-1" id="app-container"></main>
     </div>
 
     <div id="modal" class="modal fixed inset-0 z-[60] items-center justify-center p-4">
         <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto relative">
-            <button onclick="closeModal()" class="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full">
-                <i data-lucide="x" class="w-5 h-5"></i>
-            </button>
             <div id="modal-content" class="p-8"></div>
         </div>
     </div>
 
     <script>
-        // ============= TODOS LOS DATOS MOCK DEL CÓDIGO ORIGINAL =============
-        const mockIncidencias = [
-            { id: 'INC001', titulo: 'Farola fundida en Calle Mayor', descripcion: 'La farola número 45 de Calle Mayor no funciona desde hace una semana.', categoria: 'alumbrado', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Calle Mayor, 45', ciudadanoNombre: 'María García López', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-20T10:30:00', notas: ['Técnico asignado', 'Material solicitado'] },
-            { id: 'INC002', titulo: 'Contenedores desbordados', descripcion: 'Los contenedores de basura en Plaza España llevan varios días sin recoger.', categoria: 'limpieza', estado: 'resuelta', prioridad: 'urgente', ubicacion: 'Plaza España', ciudadanoNombre: 'Juan Martínez Sánchez', tecnicoAsignadoNombre: 'Ana Fernández', fechaCreacion: '2026-02-18T08:15:00', notas: ['Servicio notificado', 'Incidencia resuelta'] },
-            { id: 'INC003', titulo: 'Banco roto en el Retiro', descripcion: 'Banco de madera roto y con riesgo de astillas.', categoria: 'mobiliario', estado: 'pendiente', prioridad: 'media', ubicacion: 'Parque del Retiro', ciudadanoNombre: 'Laura Pérez Díaz', fechaCreacion: '2026-02-24T09:45:00', notas: [] },
-            { id: 'INC004', titulo: 'Bache en Av. Libertad', descripcion: 'Bache de gran tamaño en el carril derecho.', categoria: 'vias', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Avenida Libertad, km 2.3', ciudadanoNombre: 'Pedro González Ruiz', tecnicoAsignadoNombre: 'Miguel Ángel Torres', fechaCreacion: '2026-02-21T16:20:00', notas: ['Inspección realizada'] },
-            { id: 'INC005', titulo: 'Parada sin marquesina', descripcion: 'Fue vandalizada y retirada.', categoria: 'transporte', estado: 'pendiente', prioridad: 'media', ubicacion: 'Parada 234 - Calle Alcalá', ciudadanoNombre: 'Carmen Ruiz Moreno', fechaCreacion: '2026-02-23T12:00:00', notas: [] },
-            { id: 'INC010', titulo: 'Alcantarilla sin tapa', descripcion: 'Alcantarilla descubierta en zona de paso.', categoria: 'vias', estado: 'resuelta', prioridad: 'urgente', ubicacion: 'Calle Bravo Murillo, 156', ciudadanoNombre: 'Francisco Jiménez', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-23T14:30:00', notas: ['Tapa reemplazada'] }
+        // ============= DATOS MOCK COMPLETOS (RESTAURADOS) =============
+        let mockIncidencias = [
+            { id: 'INC001', titulo: 'Farola fundida en Calle Mayor', descripcion: 'La farola número 45 de Calle Mayor no funciona desde hace una semana.', categoria: 'alumbrado', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Calle Mayor, 45', ciudadanoNombre: 'María García López', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-20', notas: ['Técnico asignado'] },
+            { id: 'INC002', titulo: 'Contenedores desbordados', descripcion: 'Los contenedores de basura en Plaza España llevan días sin recoger.', categoria: 'limpieza', estado: 'resuelta', prioridad: 'urgente', ubicacion: 'Plaza España', ciudadanoNombre: 'Juan Martínez', tecnicoAsignadoNombre: 'Ana Fernández', fechaCreacion: '2026-02-18', notas: ['Incidencia resuelta'] },
+            { id: 'INC003', titulo: 'Banco roto en el Retiro', descripcion: 'Banco de madera roto y con riesgo de astillas.', categoria: 'mobiliario', estado: 'pendiente', prioridad: 'media', ubicacion: 'Parque del Retiro', ciudadanoNombre: 'Laura Pérez', fechaCreacion: '2026-02-24', notas: [] },
+            { id: 'INC004', titulo: 'Bache en Av. Libertad', descripcion: 'Bache de gran tamaño en el carril derecho.', categoria: 'vias', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Avenida Libertad, km 2.3', ciudadanoNombre: 'Pedro González', tecnicoAsignadoNombre: 'Miguel Ángel Torres', fechaCreacion: '2026-02-21', notas: ['Inspección realizada'] },
+            { id: 'INC005', titulo: 'Grifería sin agua en parque', descripcion: 'Las fuentes del parque infantil no funcionan.', categoria: 'otros', estado: 'en_proceso', prioridad: 'media', ubicacion: 'Zona Norte', ciudadanoNombre: 'Roberto Sánchez', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-25', notas: [] },
+            { id: 'INC008', titulo: 'Semáforo en ámbar fijo', descripcion: 'El semáforo no cambia de color.', categoria: 'vias', estado: 'pendiente', prioridad: 'media', ubicacion: 'Av. Principal', ciudadanoNombre: 'Ángel Moreno', fechaCreacion: '2026-02-26', notas: [] },
+            { id: 'INC010', titulo: 'Papelera rota en plaza', descripcion: 'Papelera pública rota.', categoria: 'mobiliario', estado: 'pendiente', prioridad: 'media', ubicacion: 'Plaza Mayor', ciudadanoNombre: 'Dolores Ruiz', fechaCreacion: '2026-02-25', notas: [] }
         ];
 
         const mockUsuarios = [
-            { id: 'USR001', nombre: 'María García López', email: 'maria.garcia@email.com', rol: 'ciudadano', activo: true, fechaRegistro: '2025-11-10', stats: '5 reportadas' },
-            { id: 'TEC001', nombre: 'Carlos Rodríguez', email: 'carlos.rodriguez@municipio.es', rol: 'tecnico', activo: true, fechaRegistro: '2025-01-15', stats: '45 resueltas' },
-            { id: 'GEST001', nombre: 'Admin Sistema', email: 'admin@municipio.es', rol: 'gestor', activo: true, fechaRegistro: '2024-12-01', stats: '-' }
+            { id: 'USR001', nombre: 'María García López', email: 'maria.garcia@email.com', rol: 'ciudadano', activo: true, stats: '5 reportadas' },
+            { id: 'TEC001', nombre: 'Carlos Rodríguez', email: 'carlos.r@municipio.es', rol: 'tecnico', activo: true, stats: '45 resueltas' },
+            { id: 'TEC002', nombre: 'Ana Fernández', email: 'ana.f@municipio.es', rol: 'tecnico', activo: true, stats: '38 resueltas' },
+            { id: 'GEST001', nombre: 'Admin Sistema', email: 'admin@municipio.es', rol: 'gestor', activo: true, stats: '-' }
         ];
 
+        // Estado de filtros global
+        let filtros = { texto: '', estado: 'todas', categoria: 'todas' };
         let currentTab = 'dashboard';
         let sidebarOpen = false;
 
-        // ============= LÓGICA DE NAVEGACIÓN =============
         function toggleSidebar() {
             sidebarOpen = !sidebarOpen;
-            const sidebar = document.getElementById('sidebar');
-            const backdrop = document.getElementById('backdrop');
-            sidebar.classList.toggle('-translate-x-full', !sidebarOpen);
-            backdrop.classList.toggle('hidden', !sidebarOpen);
+            document.getElementById('sidebar').classList.toggle('-translate-x-full', !sidebarOpen);
+            document.getElementById('backdrop').classList.toggle('hidden', !sidebarOpen);
         }
 
         function switchTab(tabId) {
             currentTab = tabId;
-            if (window.innerWidth < 1024) toggleSidebar();
             renderApp();
         }
 
-        // ============= RENDERS DE SECCIONES =============
         function renderApp() {
             const container = document.getElementById('app-container');
             const nav = document.getElementById('nav-links');
-            
-            // Renderizar Navegación
+
             const menuItems = [
                 { id: 'dashboard', name: 'Panel Principal', icon: 'layout-dashboard' },
                 { id: 'incidencias', name: 'Incidencias', icon: 'alert-triangle' },
@@ -115,13 +110,13 @@
             ];
 
             nav.innerHTML = menuItems.map(item => `
-                <button onclick="switchTab('${item.id}')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${currentTab === item.id ? 'active-nav' : 'text-gray-600 hover:bg-gray-50'}">
+                <button onclick="switchTab('${item.id}')" class="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${currentTab === item.id ? 'active-nav shadow-sm' : 'text-gray-600 hover:bg-gray-50'}">
                     <i data-lucide="${item.icon}" class="w-5 h-5"></i> ${item.name}
                 </button>
             `).join('');
 
-            // Renderizar Contenido según Tab
-            switch(currentTab) {
+            container.innerHTML = '';
+            switch (currentTab) {
                 case 'dashboard': renderDashboard(container); break;
                 case 'incidencias': renderIncidencias(container); break;
                 case 'usuarios': renderUsuarios(container); break;
@@ -130,7 +125,7 @@
             lucide.createIcons();
         }
 
-        // --- DASHBOARD ---
+        // --- DASHBOARD (RESTAURADO) ---
         function renderDashboard(container) {
             const stats = {
                 total: mockIncidencias.length,
@@ -141,361 +136,289 @@
 
             container.innerHTML = `
                 <div class="space-y-8 fade-in">
-                    <div>
-                        <h1 class="text-3xl font-bold tracking-tight text-gray-900">Panel de Control</h1>
-                        <p class="text-gray-500 mt-1">Resumen general del estado del municipio.</p>
-                    </div>
-
+                    <h1 class="text-3xl font-bold">Panel de Control</h1>
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         ${renderStatCard('Total Incidencias', stats.total, 'blue', 'alert-triangle')}
                         ${renderStatCard('Pendientes', stats.pendientes, 'orange', 'clock')}
                         ${renderStatCard('Resueltas', stats.resueltas, 'green', 'check-circle-2')}
                         ${renderStatCard('Urgentes', stats.urgentes, 'red', 'alert-circle')}
                     </div>
-
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                            <h3 class="font-bold mb-6 text-gray-700 flex items-center gap-2"><i data-lucide="bar-chart-3" class="w-4 h-4 text-blue-500"></i> Evolución Mensual</h3>
-                            <canvas id="chartEvolucion" height="200"></canvas>
+                        <div class="bg-white p-6 rounded-2xl border shadow-sm">
+                            <h3 class="font-bold mb-6 text-gray-700">Métricas Semanales</h3>
+                            <canvas id="chartEvolucion" height="180"></canvas>
                         </div>
-                        <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                            <h3 class="font-bold mb-6 text-gray-700 flex items-center gap-2"><i data-lucide="pie-chart" class="w-4 h-4 text-purple-500"></i> Por Categoría</h3>
-                            <canvas id="chartCategorias" height="200"></canvas>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div class="p-6 border-b border-gray-50 flex items-center justify-between">
-                            <h3 class="font-bold text-gray-700 flex items-center gap-2">
-                                <i data-lucide="history" class="w-5 h-5 text-blue-500"></i> Incidencias Recientes
-                            </h3>
-                            <button onclick="switchTab('incidencias')" class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
-                                Ver todas <i data-lucide="chevron-right" class="w-3 h-3"></i>
-                            </button>
-                        </div>
-                        <div class="divide-y divide-gray-50">
-                            ${mockIncidencias.slice(0, 5).map(inc => `
-                                <div class="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between group cursor-pointer" onclick="openModal('${inc.id}')">
-                                    <div class="flex items-center gap-4">
-                                        <div class="w-10 h-10 rounded-xl flex items-center justify-center ${getStatusColor(inc.estado)}">
-                                            <i data-lucide="${getStatusIcon(inc.estado)}" class="w-5 h-5"></i>
-                                        </div>
-                                        <div>
-                                            <p class="text-sm font-bold text-gray-800 group-hover:text-blue-600 transition-colors">${inc.titulo}</p>
-                                            <p class="text-xs text-gray-400 flex items-center gap-1">
-                                                <i data-lucide="map-pin" class="w-3 h-3"></i> ${inc.ubicacion}
-                                            </p>
-                                        </div>
+                        <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                            <h3 class="font-bold p-6 border-b">Actividad Reciente</h3>
+                            <div class="divide-y divide-gray-50">
+                                ${mockIncidencias.slice(0, 4).map(inc => `
+                                    <div class="p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center" onclick="openModal('${inc.id}')">
+                                        <div><p class="text-sm font-bold">${inc.titulo}</p><p class="text-xs text-gray-400">${inc.ubicacion}</p></div>
+                                        ${renderBadge(inc.estado)}
                                     </div>
-                                    <div class="text-right hidden sm:block">
-                                        <p class="text-xs font-bold text-gray-500">${inc.fechaCreacion.split('T')[0]}</p>
-                                        <p class="text-[10px] text-gray-400 uppercase tracking-tighter">${inc.ciudadanoNombre}</p>
-                                    </div>
-                                </div>
-                            `).join('')}
+                                `).join('')}
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
             initDashboardCharts();
         }
-        
 
-        // --- INCIDENCIAS ---
+        // --- INCIDENCIAS (CON FILTROS Y NUEVO REPORTE) ---
         function renderIncidencias(container) {
+            const filtradas = mockIncidencias.filter(i => {
+                const cumpleTexto = i.titulo.toLowerCase().includes(filtros.texto.toLowerCase()) || i.id.toLowerCase().includes(filtros.texto.toLowerCase());
+                const cumpleEstado = filtros.estado === 'todas' || i.estado === filtros.estado;
+                const cumpleCat = filtros.categoria === 'todas' || i.categoria === filtros.categoria;
+                return cumpleTexto && cumpleEstado && cumpleCat;
+            });
+
             container.innerHTML = `
-                <div class="space-y-6">
-                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h1 class="text-3xl font-bold tracking-tight">Incidencias</h1>
-                            <p class="text-gray-500">Gestión de reportes ciudadanos.</p>
-                        </div>
-                        <button class="bg-blue-600 text-white px-4 py-2 rounded-xl font-medium hover:bg-blue-700 transition-colors flex items-center gap-2">
-                            <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Reporte
+                <div class="space-y-6 fade-in">
+                    <div class="flex justify-between items-center">
+                        <div><h1 class="text-3xl font-bold">Incidencias</h1><p class="text-gray-500">Gestión de la red urbana.</p></div>
+                        <button onclick="abrirFormularioReporte()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all">
+                            <i data-lucide="plus-circle" class="w-5 h-5"></i> Nuevo Reporte
                         </button>
+                    </div>
+
+                    <div class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col md:flex-row gap-4">
+                        <div class="flex-1 relative">
+                            <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
+                            <input type="text" id="search-input" value="${filtros.texto}" oninput="actualizarFiltros('texto', this.value)" placeholder="Buscar por ID o Título..." class="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 ring-blue-100">
+                        </div>
+                        <select onchange="actualizarFiltros('estado', this.value)" class="border rounded-xl px-4 py-2 bg-gray-50 outline-none">
+                            <option value="todas" ${filtros.estado === 'todas' ? 'selected' : ''}>Todos los Estados</option>
+                            <option value="pendiente" ${filtros.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                            <option value="en_proceso" ${filtros.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
+                            <option value="resuelta" ${filtros.estado === 'resuelta' ? 'selected' : ''}>Resuelta</option>
+                        </select>
+                        <select onchange="actualizarFiltros('categoria', this.value)" class="border rounded-xl px-4 py-2 bg-gray-50 outline-none">
+                            <option value="todas">Todas las Categorías</option>
+                            <option value="alumbrado">Alumbrado</option>
+                            <option value="limpieza">Limpieza</option>
+                            <option value="vias">Vías</option>
+                            <option value="mobiliario">Mobiliario</option>
+                        </select>
                     </div>
 
                     <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden overflow-x-auto">
                         <table class="w-full text-left">
                             <thead class="bg-gray-50 border-b border-gray-100 text-[10px] uppercase font-bold text-gray-400">
                                 <tr>
-                                    <th class="px-6 py-4">ID / Título</th>
+                                    <th class="px-6 py-4">Título</th>
                                     <th class="px-6 py-4">Estado</th>
                                     <th class="px-6 py-4">Prioridad</th>
-                                    <th class="px-6 py-4">Ubicación</th>
-                                    <th class="px-6 py-4">Fecha</th>
-                                    <th class="px-6 py-4 text-right">Detalle</th>
+                                    <th class="px-6 py-4">Asignar</th>
+                                    <th class="px-6 py-4 text-right">Acción</th>
                                 </tr>
                             </thead>
-                            <tbody class="divide-y divide-gray-100">
-                                ${mockIncidencias.map(inc => `
-                                    <tr class="hover:bg-blue-50/30 transition-colors">
-                                        <td class="px-6 py-4">
-                                            <p class="font-semibold text-sm">${inc.titulo}</p>
-                                            <p class="text-xs text-gray-400 font-mono">${inc.id}</p>
-                                        </td>
+                            <tbody class="divide-y divide-gray-100 text-sm">
+                                ${filtradas.length > 0 ? filtradas.map(inc => `
+                                    <tr class="hover:bg-blue-50/20 transition-colors">
+                                        <td class="px-6 py-4"><p class="font-bold">${inc.titulo}</p><p class="text-[10px] font-mono text-gray-400">${inc.id}</p></td>
                                         <td class="px-6 py-4">${renderBadge(inc.estado)}</td>
-                                        <td class="px-6 py-4 font-bold text-xs uppercase ${getPriorityColor(inc.prioridad)}">${inc.prioridad}</td>
+                                        <td class="px-6 py-4 font-bold text-[10px] uppercase ${getPriorityColor(inc.prioridad)}">${inc.prioridad}</td>
                                         <td class="px-6 py-4">
-                                            <div class="flex items-center gap-1 text-xs text-gray-600">
-                                                <i data-lucide="map-pin" class="w-3 h-3 text-gray-400"></i> ${inc.ubicacion}
-                                            </div>
+                                            <button onclick="mostrarSelectorTecnicos('${inc.id}')" class="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Asignar</button>
                                         </td>
-                                        <td class="px-6 py-4 text-xs text-gray-500">${inc.fechaCreacion.split('T')[0]}</td>
                                         <td class="px-6 py-4 text-right">
-                                            <button onclick="openModal('${inc.id}')" class="text-blue-600 hover:bg-blue-100 p-2 rounded-lg transition-colors">
-                                                <i data-lucide="eye" class="w-4 h-4"></i>
-                                            </button>
+                                            <button onclick="openModal('${inc.id}')" class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg"><i data-lucide="eye" class="w-4 h-4"></i></button>
                                         </td>
                                     </tr>
-                                `).join('')}
+                                `).join('') : `<tr><td colspan="5" class="p-12 text-center text-gray-400 italic">No se encontraron incidencias con estos filtros.</td></tr>`}
                             </tbody>
                         </table>
                     </div>
                 </div>
             `;
+            lucide.createIcons();
         }
 
-        // --- USUARIOS ---
-        function renderUsuarios(container) {
-            container.innerHTML = `
-                <div class="space-y-6">
-                    <h1 class="text-3xl font-bold tracking-tight">Directorio de Usuarios</h1>
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <table class="w-full text-left">
-                            <thead class="bg-gray-50 text-[10px] font-bold text-gray-400 uppercase">
-                                <tr>
-                                    <th class="px-6 py-4">Usuario</th>
-                                    <th class="px-6 py-4">Rol</th>
-                                    <th class="px-6 py-4">Estado</th>
-                                    <th class="px-6 py-4">Actividad</th>
-                                    <th class="px-6 py-4 text-right">Acciones</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-gray-50 text-sm">
-                                ${mockUsuarios.map(u => `
-                                    <tr>
-                                        <td class="px-6 py-4 flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-xs">
-                                                ${u.nombre.substring(0,2).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <p class="font-semibold">${u.nombre}</p>
-                                                <p class="text-xs text-gray-400">${u.email}</p>
-                                            </div>
-                                        </td>
-                                        <td class="px-6 py-4"><span class="px-2 py-1 rounded bg-gray-100 text-[10px] font-bold uppercase tracking-tighter">${u.rol}</span></td>
-                                        <td class="px-6 py-4"><span class="flex items-center gap-1 text-green-600 text-xs"><i data-lucide="circle" class="w-2 h-2 fill-current"></i> Activo</span></td>
-                                        <td class="px-6 py-4 text-gray-500 text-xs">${u.stats}</td>
-                                        <td class="px-6 py-4 text-right"><button class="text-gray-400 hover:text-blue-600"><i data-lucide="more-vertical" class="w-4 h-4"></i></button></td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            `;
-        }
-
-        // --- CONFIGURACIÓN ---
-        function renderSettings(container) {
-            container.innerHTML = `
-                <div class="space-y-8 max-w-4xl">
-                    <h1 class="text-3xl font-bold tracking-tight">Configuración del Sistema</h1>
+        // ============= FUNCIONALIDAD: NUEVO REPORTE =============
+        function abrirFormularioReporte() {
+            const modal = document.getElementById('modal');
+            const content = document.getElementById('modal-content');
+            
+            content.innerHTML = `
+                <div class="space-y-6 fade-in relative">
+                    <button onclick="closeModal()" class="absolute -top-2 -right-2 p-2 hover:bg-gray-100 rounded-full text-gray-400"><i data-lucide="x"></i></button>
                     
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div class="p-6 border-b font-bold flex items-center gap-2"><i data-lucide="shield" class="w-5 h-5 text-blue-500"></i> Seguridad y Acceso</div>
-                        <div class="p-6 space-y-6">
-                            ${renderToggle("Autenticación 2FA", "Requiere un código adicional para entrar.")}
-                            ${renderToggle("Cierre de sesión automático", "Cierra sesión tras 30 min de inactividad.")}
+                    <h2 class="text-2xl font-bold flex items-center gap-2"><i data-lucide="edit-3" class="text-blue-600"></i> Nuevo Reporte</h2>
+                    <form id="form-reporte" class="grid grid-cols-1 md:grid-cols-2 gap-4" onsubmit="guardarNuevaIncidencia(event)">
+                        <div class="md:col-span-2">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Título de la incidencia</label>
+                            <input type="text" name="titulo" required class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100" placeholder="Ej: Fuga de agua en Av. Goya">
                         </div>
-                    </div>
-
-                    <div class="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div class="p-6 border-b font-bold flex items-center gap-2"><i data-lucide="globe" class="w-5 h-5 text-blue-500"></i> Regional</div>
-                        <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-2">
-                                <label class="text-xs font-bold text-gray-500 uppercase">Idioma del Sistema</label>
-                                <select class="w-full bg-gray-50 border rounded-xl px-4 py-2 outline-none focus:ring-2 ring-blue-100 transition-all">
-                                    <option>Español (ES)</option>
-                                    <option>Català</option>
-                                    <option>English (US)</option>
-                                </select>
-                            </div>
-                            <div class="space-y-2">
-                                <label class="text-xs font-bold text-gray-500 uppercase">Zona Horaria</label>
-                                <select class="w-full bg-gray-50 border rounded-xl px-4 py-2 outline-none focus:ring-2 ring-blue-100 transition-all">
-                                    <option>Europa/Madrid (GMT+1)</option>
-                                    <option>Atlantic/Canary (GMT+0)</option>
-                                </select>
-                            </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Categoría</label>
+                            <select name="categoria" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none bg-gray-50">
+                                <option value="limpieza">Limpieza</option>
+                                <option value="alumbrado">Alumbrado</option>
+                                <option value="vias">Vías</option>
+                                <option value="mobiliario">Mobiliario</option>
+                                <option value="otros">Otros</option>
+                            </select>
                         </div>
-                        <div class="p-6 bg-gray-50 border-t flex justify-end">
-                            <button class="bg-blue-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-blue-700 transition-all">Guardar Cambios</button>
+                        <div>
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Prioridad</label>
+                            <select name="prioridad" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none bg-gray-50">
+                                <option value="baja">Baja</option>
+                                <option value="media">Media</option>
+                                <option value="alta" selected>Alta</option>
+                                <option value="urgente">Urgente</option>
+                            </select>
                         </div>
-                    </div>
+                        <div class="md:col-span-2">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Ubicación exacta</label>
+                            <input type="text" name="ubicacion" required class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100" placeholder="Ej: Calle Gran Vía, 22">
+                        </div>
+                        <div class="md:col-span-2">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase">Descripción detallada</label>
+                            <textarea name="descripcion" rows="3" required class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100" placeholder="Describe lo que sucede..."></textarea>
+                        </div>
+                        <div class="md:col-span-2 pt-4 flex gap-3">
+                            <button type="button" onclick="closeModal()" class="flex-1 py-3 font-bold text-gray-400 hover:bg-gray-50 rounded-xl transition-all">Cancelar</button>
+                            <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Crear Reporte</button>
+                        </div>
+                    </form>
                 </div>
             `;
+            modal.classList.add('active');
+            lucide.createIcons();
         }
 
-        // ============= HELPERS UI =============
-        function renderStatCard(title, value, color, icon) {
-            const styles = {
-                blue: 'bg-blue-50 text-blue-600',
-                orange: 'bg-orange-50 text-orange-600',
-                green: 'bg-green-50 text-green-600',
-                red: 'bg-red-50 text-red-600'
+        function guardarNuevaIncidencia(event) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const nueva = {
+                id: 'INC' + Math.floor(100 + Math.random() * 900),
+                titulo: formData.get('titulo'),
+                categoria: formData.get('categoria'),
+                prioridad: formData.get('prioridad'),
+                ubicacion: formData.get('ubicacion'),
+                descripcion: formData.get('descripcion'),
+                estado: 'pendiente',
+                ciudadanoNombre: 'Admin (Manual)',
+                fechaCreacion: new Date().toISOString().split('T')[0],
+                notas: []
             };
-            return `
-                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm flex items-center justify-between hover:shadow-md transition-shadow">
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase tracking-wider">${title}</p>
-                        <p class="text-3xl font-bold mt-1">${value}</p>
-                    </div>
-                    <div class="p-3 rounded-xl ${styles[color]}">
-                        <i data-lucide="${icon}" class="w-6 h-6"></i>
+
+            mockIncidencias.unshift(nueva);
+            closeModal();
+            renderApp();
+            alert('¡Nueva incidencia reportada con éxito!');
+        }
+
+        // ============= LÓGICA DE ASIGNACIÓN (RESTAURADA) =============
+        function mostrarSelectorTecnicos(id) {
+            const modal = document.getElementById('modal');
+            const content = document.getElementById('modal-content');
+            const tecnicos = mockUsuarios.filter(u => u.rol === 'tecnico');
+            const inc = mockIncidencias.find(i => i.id === id);
+
+            content.innerHTML = `
+                <div class="space-y-6 fade-in relative">
+                    <button onclick="closeModal()" class="absolute -top-2 -right-2 p-2 hover:bg-gray-100 rounded-full text-gray-400"><i data-lucide="x"></i></button>
+                    <div class="flex items-center gap-4"><button onclick="openModal('${id}')" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="arrow-left" class="w-5 h-5"></i></button><h2 class="text-xl font-bold">Asignar Técnico</h2></div>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100"><p class="text-xs text-blue-500 font-bold uppercase">Incidencia</p><p class="text-sm font-bold">${inc.titulo}</p></div>
+                    <div class="space-y-2">
+                        ${tecnicos.map(t => `
+                            <div onclick="confirmarAsignacion('${id}', '${t.id}')" class="flex items-center justify-between p-4 border rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer group transition-all">
+                                <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">${t.nombre.substring(0,2)}</div><div><p class="text-sm font-bold">${t.nombre}</p><p class="text-[10px] text-gray-400">${t.stats}</p></div></div>
+                                <i data-lucide="user-check" class="w-4 h-4 text-transparent group-hover:text-blue-600"></i>
+                            </div>
+                        `).join('')}
                     </div>
                 </div>
             `;
+            modal.classList.add('active');
+            lucide.createIcons();
         }
 
-        // Helpers para color e icono de estado
-        function getStatusColor(estado) {
-            if (estado === 'resuelta') return 'bg-green-100 text-green-600';
-            if (estado === 'en_proceso') return 'bg-orange-100 text-orange-600';
-            return 'bg-blue-100 text-blue-600';
-        }
-        function getStatusIcon(estado) {
-            if (estado === 'resuelta') return 'check-circle-2';
-            if (estado === 'en_proceso') return 'clock';
-            return 'alert-circle';
+        function confirmarAsignacion(incId, tecId) {
+            const incIndex = mockIncidencias.findIndex(i => i.id === incId);
+            const tec = mockUsuarios.find(u => u.id === tecId);
+            mockIncidencias[incIndex].tecnicoAsignadoNombre = tec.nombre;
+            mockIncidencias[incIndex].estado = 'en_proceso';
+            mockIncidencias[incId].notas.push(`Asignado a ${tec.nombre} el ${new Date().toLocaleDateString()}`);
+            closeModal();
+            renderApp();
         }
 
-        function renderBadge(estado) {
-            const config = {
-                pendiente: { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'clock' },
-                en_proceso: { bg: 'bg-orange-100', text: 'text-orange-600', icon: 'alert-triangle' },
-                resuelta: { bg: 'bg-green-100', text: 'text-green-600', icon: 'check-circle-2' }
-            };
-            const c = config[estado] || config.pendiente;
-            return `
-                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-tight ${c.bg} ${c.text}">
-                    <i data-lucide="${c.icon}" class="w-3 h-3"></i> ${estado.replace('_', ' ')}
-                </span>
-            `;
+        // ============= FUNCIONES DE UTILIDAD (RESTAURADAS) =============
+        function actualizarFiltros(campo, valor) {
+            filtros[campo] = valor;
+            renderIncidencias(document.getElementById('app-container'));
         }
 
-        function getPriorityColor(p) {
-            if(p === 'urgente') return 'text-red-600';
-            if(p === 'alta') return 'text-orange-600';
-            return 'text-blue-600';
-        }
-
-        function renderToggle(label, desc) {
-            return `
-                <div class="flex items-center justify-between">
-                    <div class="max-w-[80%]">
-                        <p class="font-semibold text-sm">${label}</p>
-                        <p class="text-xs text-gray-400">${desc}</p>
-                    </div>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" class="sr-only peer" checked>
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                </div>
-            `;
-        }
-
-        // --- LÓGICA DE MODAL ---
         function openModal(id) {
             const inc = mockIncidencias.find(i => i.id === id);
             const content = document.getElementById('modal-content');
             content.innerHTML = `
-                <div class="space-y-6">
-                    <div>
-                        <div class="flex items-center gap-2 mb-2">${renderBadge(inc.estado)}</div>
-                        <h2 class="text-2xl font-bold">${inc.titulo}</h2>
-                        <p class="text-gray-400 font-mono text-xs">ID de Seguimiento: ${inc.id}</p>
+                <div class="space-y-6 relative">
+                    <button onclick="closeModal()" class="absolute -top-2 -right-2 p-2 hover:bg-gray-100 rounded-full text-gray-400"><i data-lucide="x"></i></button>
+                    <div><div class="mb-2">${renderBadge(inc.estado)}</div><h2 class="text-2xl font-bold">${inc.titulo}</h2><p class="text-[10px] font-mono text-gray-400 uppercase">Expediente: ${inc.id}</p></div>
+                    <div class="grid grid-cols-2 gap-4 py-6 border-y border-gray-100 text-sm">
+                        <div><p class="text-xs font-bold text-gray-400 uppercase">Ubicación</p><p class="font-bold flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${inc.ubicacion}</p></div>
+                        <div><p class="text-xs font-bold text-gray-400 uppercase">Prioridad</p><p class="font-bold uppercase ${getPriorityColor(inc.prioridad)}">${inc.prioridad}</p></div>
+                        <div><p class="text-xs font-bold text-gray-400 uppercase">Reportado por</p><p class="font-bold">${inc.ciudadanoNombre}</p></div>
+                        <div><p class="text-xs font-bold text-gray-400 uppercase">Técnico</p><p class="font-bold">${inc.tecnicoAsignadoNombre || 'Sin asignar'}</p></div>
                     </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 py-6 border-y border-gray-100">
-                        <div>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase">Ubicación</p>
-                            <p class="font-medium text-sm mt-1 flex items-center gap-1"><i data-lucide="map-pin" class="w-4 h-4 text-red-400"></i> ${inc.ubicacion}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase">Prioridad</p>
-                            <p class="font-bold text-sm mt-1 uppercase ${getPriorityColor(inc.prioridad)}">${inc.prioridad}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase">Reportado por</p>
-                            <p class="font-medium text-sm mt-1">${inc.ciudadanoNombre}</p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase">Técnico Asignado</p>
-                            <p class="font-medium text-sm mt-1">${inc.tecnicoAsignadoNombre || 'Sin asignar'}</p>
-                        </div>
-                    </div>
-
-                    <div>
-                        <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Descripción de la incidencia</p>
-                        <p class="bg-gray-50 p-4 rounded-xl text-gray-700 text-sm leading-relaxed italic border border-gray-100">${inc.descripcion}</p>
-                    </div>
-
-                    ${inc.notas.length > 0 ? `
-                        <div>
-                            <p class="text-[10px] font-bold text-gray-400 uppercase mb-2">Notas de Seguimiento</p>
-                            <div class="space-y-2">
-                                ${inc.notas.map(n => `<div class="p-3 bg-blue-50 rounded-lg text-xs text-blue-700 border border-blue-100">${n}</div>`).join('')}
-                            </div>
-                        </div>
-                    ` : ''}
-
-                    <div class="pt-4 flex gap-3">
-                        <button class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100">Asignar Personal</button>
-                        <button class="flex-1 bg-white border border-gray-200 font-bold py-3 rounded-xl hover:bg-gray-50 transition-all">Archivar</button>
-                    </div>
+                    <div><p class="text-xs font-bold text-gray-400 uppercase mb-2">Descripción</p><p class="bg-gray-50 p-4 rounded-xl text-gray-600 text-sm leading-relaxed border">${inc.descripcion}</p></div>
+                    <div class="flex gap-3"><button onclick="mostrarSelectorTecnicos('${inc.id}')" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">Asignar Personal</button><button onclick="archivarIncidencia('${inc.id}')" class="flex-1 border font-bold py-3 rounded-xl hover:bg-gray-50">Archivar</button></div>
                 </div>
             `;
             document.getElementById('modal').classList.add('active');
             lucide.createIcons();
         }
 
-        function closeModal() {
-            document.getElementById('modal').classList.remove('active');
+        function archivarIncidencia(id) {
+            const index = mockIncidencias.findIndex(i => i.id === id);
+            if(confirm('¿Marcar como resuelta y archivar?')) {
+                mockIncidencias[index].estado = 'resuelta';
+                closeModal();
+                renderApp();
+            }
         }
 
-        // --- GRÁFICAS ---
+        function closeModal() { document.getElementById('modal').classList.remove('active'); }
+
+        function renderStatCard(title, value, color, icon) {
+            const styles = { blue: 'bg-blue-50 text-blue-600', orange: 'bg-orange-50 text-orange-600', green: 'bg-green-50 text-green-600', red: 'bg-red-50 text-red-600' };
+            return `<div class="bg-white p-6 rounded-2xl border shadow-sm flex items-center justify-between"><div class="flex-1">
+                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${title}</p><p class="text-3xl font-bold mt-1">${value}</p>
+                    </div><div class="p-3 rounded-xl ${styles[color]}"><i data-lucide="${icon}"></i></div></div>`;
+        }
+
+        function renderBadge(estado) {
+            const config = { pendiente: { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'clock' }, en_proceso: { bg: 'bg-orange-100', text: 'text-orange-600', icon: 'alert-triangle' }, resuelta: { bg: 'bg-green-100', text: 'text-green-600', icon: 'check-circle-2' } };
+            const c = config[estado] || config.pendiente;
+            return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${c.bg} ${c.text}"><i data-lucide="${c.icon}" class="w-3 h-3"></i> ${estado.replace('_', ' ')}</span>`;
+        }
+
+        function getPriorityColor(p) { return p === 'urgente' ? 'text-red-600' : p === 'alta' ? 'text-orange-600' : 'text-blue-600'; }
+
+        // --- SECCIONES SECUNDARIAS ---
+        function renderUsuarios(container) {
+            container.innerHTML = `<div class="fade-in space-y-6"><h1 class="text-3xl font-bold">Usuarios</h1><div class="bg-white rounded-2xl border shadow-sm"><table class="w-full text-left text-sm">${mockUsuarios.map(u => `<tr class="border-b hover:bg-gray-50 transition-all"><td class="p-4 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">${u.nombre.substring(0,2)}</div><div><p class="font-bold">${u.nombre}</p><p class="text-xs text-gray-400">${u.email}</p></div></td><td class="p-4"><span class="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold uppercase">${u.rol}</span></td><td class="p-4 text-gray-500 text-xs text-right">${u.stats}</td></tr>`).join('')}</table></div></div>`;
+        }
+
+        function renderSettings(container) {
+            container.innerHTML = `<div class="fade-in space-y-8 max-w-2xl"><h1 class="text-3xl font-bold">Configuración</h1><div class="bg-white p-8 rounded-2xl border space-y-6">${renderToggle("Notificaciones Push", "Recibir alertas en tiempo real")}${renderToggle("Seguridad Avanzada", "Activa el log de auditoría para gestores")}</div></div>`;
+        }
+
+        function renderToggle(label, desc) {
+            return `<div class="flex items-center justify-between"><div><p class="font-bold text-sm text-gray-700">${label}</p><p class="text-xs text-gray-400">${desc}</p></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div></label></div>`;
+        }
+
         function initDashboardCharts() {
-            // Evolución Lineal
-            new Chart(document.getElementById('chartEvolucion'), {
-                type: 'line',
-                data: {
-                    labels: ['Ago', 'Sep', 'Oct', 'Nov', 'Dic', 'Ene', 'Feb'],
-                    datasets: [
-                        { label: 'Reportadas', data: [45, 52, 38, 48, 35, 42, 55], borderColor: '#3b82f6', backgroundColor: '#3b82f622', fill: true, tension: 0.4 },
-                        { label: 'Resueltas', data: [38, 48, 35, 42, 32, 39, 45], borderColor: '#10b981', backgroundColor: '#10b98122', fill: true, tension: 0.4 }
-                    ]
-                },
-                options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
-            });
-
-            // Categorías Pie
-            new Chart(document.getElementById('chartCategorias'), {
-                type: 'doughnut',
-                data: {
-                    labels: ['Limpieza', 'Alumbrado', 'Mobiliario', 'Vías', 'Transporte'],
-                    datasets: [{
-                        data: [85, 45, 38, 72, 28],
-                        backgroundColor: ['#10b981', '#f59e0b', '#3b82f6', '#ef4444', '#8b5cf6']
-                    }]
-                },
-                options: { cutout: '70%', plugins: { legend: { position: 'right' } } }
-            });
+            new Chart(document.getElementById('chartEvolucion'), { type: 'line', data: { labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'], datasets: [{ label: 'Reportes', data: [12, 19, 15, 8, 22, 5, 10], borderColor: '#3b82f6', tension: 0.4, fill: true, backgroundColor: '#3b82f611' }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
         }
 
-        // Inicializar App
         window.onload = () => switchTab('dashboard');
     </script>
 </body>
+
 </html>
