@@ -5,10 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Detalle de Incidencia</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/latest/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
+  <script>if (!window.lucide || typeof window.lucide.createIcons !== 'function') window.lucide = { createIcons: function() {} };</script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Inter', sans-serif; }
+    #incidentMapView { min-height: 260px; }
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40">
@@ -93,6 +97,11 @@
                       </div>
                     </div>
 
+                    <div>
+                      <label class="text-sm font-medium text-slate-600 block mb-2">Punto en el mapa</label>
+                      <div id="incidentMapView" class="w-full rounded-xl border border-slate-200 overflow-hidden"></div>
+                    </div>
+
                     <div class="flex items-start gap-2">
                       <i data-lucide="calendar" class="w-5 h-5 text-slate-400 mt-0.5 flex-shrink-0"></i>
                       <div>
@@ -137,11 +146,51 @@
       `;
     }
 
+    function initMapView(incident) {
+      const el = document.getElementById('incidentMapView');
+      if (!el || typeof L === 'undefined') return;
+
+      if (incident.geo && typeof incident.geo.lat === 'number') {
+        const map = L.map('incidentMapView', { zoomControl: true, scrollWheelZoom: false })
+          .setView([incident.geo.lat, incident.geo.lng], 16);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+        L.marker([incident.geo.lat, incident.geo.lng])
+          .addTo(map)
+          .bindPopup(incident.location || 'Ubicación de la incidencia')
+          .openPopup();
+      } else if (incident.location) {
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(incident.location)}&limit=1`)
+          .then(r => r.json())
+          .then(results => {
+            if (!results || results.length === 0) { el.classList.add('hidden'); return; }
+            const lat = parseFloat(results[0].lat);
+            const lng = parseFloat(results[0].lon);
+            const map = L.map('incidentMapView', { zoomControl: true, scrollWheelZoom: false })
+              .setView([lat, lng], 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+              maxZoom: 19,
+              attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(map);
+            L.marker([lat, lng])
+              .addTo(map)
+              .bindPopup(incident.location)
+              .openPopup();
+          })
+          .catch(() => el.classList.add('hidden'));
+      } else {
+        el.classList.add('hidden');
+      }
+    }
+
     function render() {
       const id = new URLSearchParams(window.location.search).get('id');
       const incident = mockIncidents.find(i => i.id === id);
       document.getElementById('app').innerHTML = incident ? renderIncidentDetail(incident) : renderNotFound();
       lucide.createIcons();
+      if (incident) initMapView(incident);
     }
 
     render();

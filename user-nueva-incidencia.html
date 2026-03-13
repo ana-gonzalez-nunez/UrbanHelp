@@ -5,10 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Registrar Nueva Incidencia</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/latest/umd/lucide.min.js"></script>
+  <script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
+  <script>
+    if (!window.lucide || typeof window.lucide.createIcons !== 'function') {
+      window.lucide = { createIcons: function() {} };
+    }
+  </script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Inter', sans-serif; }
+    #incidentMap { min-height: 320px; }
   </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40">
@@ -17,6 +25,15 @@
   <script src="user-data.js"></script>
   <script>
     let imageName = '';
+    let selectedCoords = null;
+    let mapInstance = null;
+    let marker = null;
+
+    function safeCreateIcons() {
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    }
 
     const categories = [
       'limpieza',
@@ -78,6 +95,14 @@
             </div>
 
             <div class="mb-6">
+              <label class="block text-sm font-medium text-slate-900 mb-2">Marca el punto en el mapa *</label>
+              <div id="incidentMap" class="w-full rounded-xl border border-slate-300 overflow-hidden"></div>
+              <input id="latitude" type="hidden" required>
+              <input id="longitude" type="hidden" required>
+              <p id="selectedPoint" class="text-sm text-slate-500 mt-2">Haz clic en el mapa para fijar la ubicación exacta.</p>
+            </div>
+
+            <div class="mb-6">
               <label class="block text-sm font-medium text-slate-900 mb-2">Imagen (opcional)</label>
               <div class="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center hover:border-blue-500 transition-colors">
                 <i data-lucide="upload" class="w-8 h-8 text-slate-400 mx-auto mb-2"></i>
@@ -102,6 +127,51 @@
       `;
     }
 
+    function buildIncidentId() {
+      const incidents = window.getIncidents ? window.getIncidents() : (window.mockIncidents || []);
+      const maxId = incidents.reduce((max, incident) => {
+        const value = Number(String(incident.id || '').replace(/[^0-9]/g, ''));
+        return Number.isFinite(value) ? Math.max(max, value) : max;
+      }, 0);
+      return `INC${String(maxId + 1).padStart(3, '0')}`;
+    }
+
+    function initMapPicker() {
+      const mapElement = document.getElementById('incidentMap');
+      if (!mapElement || typeof L === 'undefined') {
+        return;
+      }
+
+      mapInstance = L.map('incidentMap').setView([40.4168, -3.7038], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(mapInstance);
+
+      mapInstance.on('click', (event) => {
+        const lat = Number(event.latlng.lat.toFixed(6));
+        const lng = Number(event.latlng.lng.toFixed(6));
+        selectedCoords = { lat, lng };
+
+        if (marker) {
+          marker.setLatLng([lat, lng]);
+        } else {
+          marker = L.marker([lat, lng]).addTo(mapInstance);
+        }
+
+        document.getElementById('latitude').value = String(lat);
+        document.getElementById('longitude').value = String(lng);
+        document.getElementById('selectedPoint').textContent = `Punto seleccionado: ${lat}, ${lng}`;
+      });
+
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition((position) => {
+          mapInstance.setView([position.coords.latitude, position.coords.longitude], 15);
+        });
+      }
+    }
+
     function bindFormEvents() {
       const imageInput = document.getElementById('image');
       const form = document.getElementById('newIncidentForm');
@@ -119,8 +189,57 @@
 
       form.addEventListener('submit', function(event) {
         event.preventDefault();
+
+        if (!selectedCoords) {
+          alert('Marca la ubicación en el mapa para continuar.');
+          return;
+        }
+
+        const profile = window.getUserProfile ? getUserProfile() : {};
+        const categoryValue = document.getElementById('category').value;
+        const descriptionValue = document.getElementById('description').value.trim();
+        const locationValue = document.getElementById('location').value.trim();
+        const nowIso = new Date().toISOString();
+
+        const newIncident = {
+          id: buildIncidentId(),
+          title: `Incidencia en ${getCategoryLabel(categoryValue)}`,
+          category: getCategoryLabel(categoryValue),
+          description: descriptionValue,
+          location: locationValue,
+          geo: {
+            lat: selectedCoords.lat,
+            lng: selectedCoords.lng
+          },
+          status: 'pendiente',
+          priority: 'media',
+          createdAt: nowIso,
+          reportDate: nowIso.slice(0, 10),
+          assignedDate: null,
+          citizenName: profile.fullName || 'Ciudadano',
+          citizenEmail: profile.email || 'sin-email@local',
+          citizenPhone: profile.phone || 'Sin teléfono',
+          assignedTechnician: null,
+          technicianComments: [],
+          actions: [],
+          statusHistory: [
+            {
+              id: 'H1',
+              status: 'pendiente',
+              date: nowIso,
+              comment: 'Incidencia registrada por ciudadano.'
+            }
+          ]
+        };
+
+        if (window.addIncident) {
+          window.addIncident(newIncident);
+        } else {
+          window.mockIncidents = [newIncident, ...(window.mockIncidents || [])];
+        }
+
         document.getElementById('app').innerHTML = renderSuccess();
-        lucide.createIcons();
+        safeCreateIcons();
         setTimeout(() => {
           window.location.href = 'user.html';
         }, 2000);
@@ -129,7 +248,8 @@
 
     function render() {
       document.getElementById('app').innerHTML = renderForm();
-      lucide.createIcons();
+      safeCreateIcons();
+      initMapPicker();
       bindFormEvents();
     }
 
