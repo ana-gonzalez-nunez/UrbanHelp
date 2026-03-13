@@ -1,0 +1,164 @@
+/* Estilos Globales */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body, html {
+    height: 100%;
+    width: 100%;
+}
+
+/* 1. Fondo de la Página con el Gradiente solicitado */
+body {
+    background: linear-gradient(135deg, #829845 0%, #588ba9 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* 2. Tarjeta Principal */
+.login-card {
+    background-color: white;
+    width: 95%;
+    max-width: 950px;
+    min-height: 550px;
+    border-radius: 25px;
+    display: flex;
+    overflow: hidden;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+}
+
+/* 3. Sección Izquierda */
+.login-decoration {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+    background-color: #ffffff;
+}
+
+.circles-background {
+    width: 300px;
+    height: 300px;
+    background-color: #f1f3f6;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+.laptop-icon {
+    width: 80%;
+    height: auto;
+    object-fit: contain;
+}
+
+/* 4. Sección Derecha (Formulario) */
+.login-form-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 40px 60px;
+    text-align: center;
+}
+
+.login-form-container h2 {
+    font-size: 28px;
+    color: #222;
+    margin-bottom: 30px;
+    font-weight: 700;
+}
+
+/* 5. Inputs y Grupos */
+.input-group {
+    position: relative;
+    margin-bottom: 15px;
+}
+
+.input-group i {
+    position: absolute;
+    left: 20px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #595959;
+    z-index: 1;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 15px 20px 15px 55px;
+    background-color: #f1f3f6;
+    border: none;
+    border-radius: 35px;
+    font-size: 15px;
+    color: #222;
+    transition: all 0.3s ease;
+}
+
+.input-group input:focus {
+    outline: none;
+    background-color: #e8eaf0;
+    box-shadow: 0 0 10px rgba(121, 195, 79, 0.2);
+}
+
+/* Fila para Apellidos */
+.row {
+    display: flex;
+    gap: 10px;
+}
+.row .input-group {
+    flex: 1;
+}
+
+/* 6. Botón de Registro (Verde Lima) */
+.login-button {
+    width: 100%;
+    padding: 16px;
+    background-color: #79C34F;
+    border: none;
+    border-radius: 35px;
+    color: #1A1A1A;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 15px;
+    transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.login-button:hover {
+    background-color: #69ae42;
+    transform: translateY(-2px);
+}
+
+/* 7. Enlace inferior */
+.create-account {
+    display: block;
+    text-align: center;
+    font-size: 14px;
+    color: #555;
+    text-decoration: none;
+    margin-top: 30px;
+    font-weight: 600;
+}
+
+.create-account:hover {
+    text-decoration: underline;
+    color: #222;
+}
+
+/* Responsive básico para móviles */
+@media (max-width: 768px) {
+    .login-card {
+        flex-direction: column;
+        width: 90%;
+    }
+    .login-decoration {
+        display: none; /* Ocultamos la parte del logo en móviles para ahorrar espacio */
+    }
+}
