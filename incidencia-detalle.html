@@ -5,32 +5,27 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalle de Incidencia - Técnico</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/latest/umd/lucide.min.js"></script>
+    <script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
+    <script>if (!window.lucide || typeof window.lucide.createIcons !== 'function') window.lucide = { createIcons: function() {} };</script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin=""/>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .fade-in { animation: fadeIn 0.3s ease-in; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        #incidentMapDetail { min-height: 280px; }
     </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50 min-h-screen">
     <div id="app"></div>
 
+    <script src="user-data.js"></script>
     <script>
-        const mockIncidents = [
-            { id: 'INC001', title: 'Farola fundida en Calle Mayor', description: 'La farola número 45 de Calle Mayor no funciona desde hace una semana. Se requiere cambio de bombilla o revisión de circuito.', category: 'Alumbrado público', status: 'en proceso', priority: 'alta', location: 'Calle Mayor, 45', citizenName: 'María García López', citizenEmail: 'maria.garcia@email.com', citizenPhone: '+34 612 345 678', assignedTechnician: 'Carlos Rodríguez', reportDate: '2026-02-20', assignedDate: '2026-02-21', actions: [ { id: 'A1', date: '27/02/2026 10:30', technician: 'Carlos Rodríguez', action: 'Incidencia asignada', comment: 'Se procede a la inspección del sitio' }, { id: 'A2', date: '27/02/2026 11:00', technician: 'Carlos Rodríguez', action: 'Inspección inicial realizada', comment: 'Confirmado fallo de bombilla. Se requiere reemplazo.' } ] },
-            { id: 'INC002', title: 'Contenedores desbordados', description: 'Los contenedores de basura en Plaza España llevan varios días sin recoger.', category: 'Limpieza', status: 'resuelta', priority: 'alta', location: 'Plaza España', citizenName: 'Juan Martínez', citizenEmail: 'juan@email.com', citizenPhone: '+34 612 345 679', assignedTechnician: 'Ana Fernández', reportDate: '2026-02-18', assignedDate: '2026-02-18', actions: [ { id: 'A1', date: '18/02/2026 09:30', technician: 'Ana Fernández', action: 'Servicio de limpieza solicitado', comment: 'Se contactó con el servicio de limpieza' }, { id: 'A2', date: '18/02/2026 14:00', technician: 'Ana Fernández', action: 'Incidencia resuelta', comment: 'Contenedores vaciados y zona limpiada' } ] },
-            { id: 'INC003', title: 'Banco roto en el Retiro', description: 'Banco de madera roto y con riesgo de astillas en la zona infantil.', category: 'Mobiliario urbano', status: 'pendiente', priority: 'media', location: 'Parque del Retiro', citizenName: 'Laura Pérez', citizenEmail: 'laura@email.com', citizenPhone: '+34 612 345 680', assignedTechnician: null, reportDate: '2026-02-24', assignedDate: null, actions: [] },
-            { id: 'INC004', title: 'Bache en Av. Libertad', description: 'Bache de gran tamaño en el carril derecho que pone en riesgo los vehículos.', category: 'Vía pública', status: 'en proceso', priority: 'alta', location: 'Avenida Libertad, km 2.3', citizenName: 'Pedro González', citizenEmail: 'pedro@email.com', citizenPhone: '+34 612 345 681', assignedTechnician: 'Miguel Ángel Torres', reportDate: '2026-02-21', assignedDate: '2026-02-22', actions: [ { id: 'A1', date: '22/02/2026 08:30', technician: 'Miguel Ángel Torres', action: 'Inspección del bache completada', comment: 'Bache mide aproximadamente 50cm. Se requiere asfaltado completo de la zona.' } ] },
-            { id: 'INC005', title: 'Grifería sin agua en parque infantil', description: 'Las fuentes de agua del parque infantil no están funcionando.', category: 'Parques y jardines', status: 'en proceso', priority: 'media', location: 'Parque Infantil - Zona Norte', citizenName: 'Roberto Sánchez', citizenEmail: 'robert@email.com', citizenPhone: '+34 612 345 682', assignedTechnician: 'Carlos Rodríguez', reportDate: '2026-02-25', assignedDate: '2026-02-25', actions: [ { id: 'A1', date: '25/02/2026 13:00', technician: 'Carlos Rodríguez', action: 'Inspección inicial', comment: 'Válvula de corte cerrada. Se reabrió el suministro' } ] },
-            { id: 'INC006', title: 'Cartel publicitario desprendido', description: 'Un cartel publicitario se desprendió en la zona comercial.', category: 'Mobiliario urbano', status: 'resuelta', priority: 'alta', location: 'Calle Comercio, 23', citizenName: 'Susana López', citizenEmail: 'susana@email.com', citizenPhone: '+34 612 345 683', assignedTechnician: 'Miguel Ángel Torres', reportDate: '2026-02-19', assignedDate: '2026-02-19', actions: [ { id: 'A1', date: '19/02/2026 15:30', technician: 'Miguel Ángel Torres', action: 'Cartel asegurado', comment: 'Cartel colocado correctamente y anclado' }, { id: 'A2', date: '19/02/2026 16:00', technician: 'Miguel Ángel Torres', action: 'Control de seguridad', comment: 'Zona verificada sin peligros' } ] },
-            { id: 'INC007', title: 'Árbol caído en Parque Central', description: 'Árbol de gran tamaño caído que bloquea paso peatonal.', category: 'Parques y jardines', status: 'en proceso', priority: 'alta', location: 'Parque Central - Entrada Sur', citizenName: 'Francisco Ruiz', citizenEmail: 'francisco@email.com', citizenPhone: '+34 612 345 684', assignedTechnician: 'Ana Fernández', reportDate: '2026-02-26', assignedDate: '2026-02-26', actions: [ { id: 'A1', date: '26/02/2026 10:00', technician: 'Ana Fernández', action: 'Se desplegó el equipo', comment: 'Maderera solicitada para limpieza de árbol' } ] },
-            { id: 'INC008', title: 'Semáforo amarillo siempre encendido', description: 'El semáforo en la intersección de Av. Principal no cambia de color.', category: 'Alumbrado público', status: 'pendiente', priority: 'media', location: 'Av. Principal - Calle 5', citizenName: 'Ángel Moreno', citizenEmail: 'angel@email.com', citizenPhone: '+34 612 345 685', assignedTechnician: null, reportDate: '2026-02-26', assignedDate: null, actions: [] },
-            { id: 'INC009', title: 'Fugas de agua en Calle Norte', description: 'Se detectó fuga importante de agua potable en la acera.', category: 'Servicios e infraestructura', status: 'resuelta', priority: 'alta', location: 'Calle Norte, 156', citizenName: 'Valentina Costa', citizenEmail: 'valentina@email.com', citizenPhone: '+34 612 345 686', assignedTechnician: 'Miguel Ángel Torres', reportDate: '2026-02-15', assignedDate: '2026-02-15', actions: [ { id: 'A1', date: '15/02/2026 11:30', technician: 'Miguel Ángel Torres', action: 'Tubería reparada', comment: 'Fuga sellada correctamente' }, { id: 'A2', date: '15/02/2026 12:00', technician: 'Miguel Ángel Torres', action: 'Prueba de funcionamiento', comment: 'Sistema funcionando correctamente' } ] },
-            { id: 'INC010', title: 'Papelera rota en plaza', description: 'Papelera pública rota y sin posibilidad de uso normal.', category: 'Mobiliario urbano', status: 'pendiente', priority: 'baja', location: 'Plaza Mayor', citizenName: 'Dolores Ruiz', citizenEmail: 'dolores@email.com', citizenPhone: '+34 612 345 687', assignedTechnician: null, reportDate: '2026-02-25', assignedDate: null, actions: [] },
-            { id: 'INC011', title: 'Grietas en acera peatonal', description: 'Grietas peligrosas detectadas en la acera de la zona residencial.', category: 'Vía pública', status: 'en proceso', priority: 'media', location: 'Calle Residencial, 34', citizenName: 'Guillermo Torres', citizenEmail: 'guillermo@email.com', citizenPhone: '+34 612 345 688', assignedTechnician: 'Carlos Rodríguez', reportDate: '2026-02-23', assignedDate: '2026-02-24', actions: [ { id: 'A1', date: '24/02/2026 09:00', technician: 'Carlos Rodríguez', action: 'Inspección realizada', comment: 'Grietas de 2-3cm detectadas' } ] },
-            { id: 'INC012', title: 'Jardinería necesaria - Poda urgente', description: 'Árboles necesitan poda urgente para evitar ramas peligrosas.', category: 'Parques y jardines', status: 'resuelta', priority: 'media', location: 'Avenida Arboleda', citizenName: 'Elena García', citizenEmail: 'elena@email.com', citizenPhone: '+34 612 345 689', assignedTechnician: 'Ana Fernández', reportDate: '2026-02-14', assignedDate: '2026-02-14', actions: [ { id: 'A1', date: '14/02/2026 08:00', technician: 'Ana Fernández', action: 'Poda completada', comment: 'Todos los árboles podados correctamente' } ] }
-        ];
+        const incidentsList = (window.mockIncidents || []).map(incident => ({
+            ...incident,
+            status: incident.status === 'en-proceso' ? 'en proceso' : incident.status
+        }));
 
         function getStatusColor(status) {
             if (status === 'resuelta') return { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-400' };
@@ -53,6 +48,13 @@
             const colors = getStatusColor(status);
             const label = status.charAt(0).toUpperCase() + status.slice(1);
             return `<span class="inline-block px-3 py-1 rounded-lg text-xs font-semibold ${colors.bg} ${colors.text} border ${colors.border}">${label}</span>`;
+        }
+
+        function getMapUrl(incident) {
+            if (window.getIncidentMapUrl) {
+                return window.getIncidentMapUrl(incident);
+            }
+            return `https://www.google.com/maps?q=${encodeURIComponent(incident.location || '')}`;
         }
 
         function renderNotFound() {
@@ -111,7 +113,13 @@
                                                 <i data-lucide="map-pin" class="h-4 w-4 text-indigo-500"></i>
                                                 Ubicación
                                             </p>
-                                            <p class="font-bold text-slate-900 pl-6">${incident.location}</p>
+                                            <div class="pl-6">
+                                                <p class="font-bold text-slate-900">${incident.location}</p>
+                                                <a href="${getMapUrl(incident)}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 mt-2 text-sm font-semibold text-indigo-600 hover:text-indigo-700">
+                                                    <i data-lucide="navigation" class="h-4 w-4"></i>
+                                                    Ir a la ubicación
+                                                </a>
+                                            </div>
                                         </div>
                                         <div class="space-y-2">
                                             <p class="text-sm font-semibold text-slate-500 flex items-center gap-2">
@@ -145,6 +153,17 @@
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+
+                            <div class="bg-white rounded-2xl shadow-lg border border-slate-200/70 overflow-hidden">
+                                <div class="bg-gradient-to-r from-indigo-50 via-blue-50 to-cyan-50 border-b border-indigo-100 p-6">
+                                    <h3 class="flex items-center gap-2 text-xl font-bold text-slate-900">
+                                        <i data-lucide="map" class="h-5 w-5 text-indigo-600"></i>
+                                        Ubicación en el mapa
+                                    </h3>
+                                    <p class="text-slate-600 mt-1">Punto exacto reportado por el ciudadano</p>
+                                </div>
+                                <div id="incidentMapDetail" class="w-full"></div>
                             </div>
 
                             <div class="bg-white rounded-2xl shadow-lg border border-slate-200/70 overflow-hidden">
@@ -311,12 +330,50 @@
             `;
         }
 
+        function initMapView(incident) {
+            const el = document.getElementById('incidentMapDetail');
+            if (!el || typeof L === 'undefined') return;
+
+            if (incident.geo && typeof incident.geo.lat === 'number') {
+                const map = L.map('incidentMapDetail', { zoomControl: true, scrollWheelZoom: false })
+                    .setView([incident.geo.lat, incident.geo.lng], 16);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+                }).addTo(map);
+                L.marker([incident.geo.lat, incident.geo.lng])
+                    .addTo(map)
+                    .bindPopup(incident.location || 'Ubicación de la incidencia')
+                    .openPopup();
+            } else if (incident.location) {
+                fetch('https://nominatim.openstreetmap.org/search?format=json&q=' + encodeURIComponent(incident.location) + '&limit=1')
+                    .then(function(r) { return r.json(); })
+                    .then(function(results) {
+                        if (!results || results.length === 0) { el.style.display = 'none'; return; }
+                        const lat = parseFloat(results[0].lat);
+                        const lng = parseFloat(results[0].lon);
+                        const map = L.map('incidentMapDetail', { zoomControl: true, scrollWheelZoom: false })
+                            .setView([lat, lng], 16);
+                        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                            maxZoom: 19, attribution: '&copy; OpenStreetMap contributors'
+                        }).addTo(map);
+                        L.marker([lat, lng])
+                            .addTo(map)
+                            .bindPopup(incident.location)
+                            .openPopup();
+                    })
+                    .catch(function() { el.style.display = 'none'; });
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
         function render() {
             const app = document.getElementById('app');
             const id = new URLSearchParams(window.location.search).get('id');
-            const incident = mockIncidents.find(i => i.id === id);
+            const incident = incidentsList.find(i => i.id === id);
             app.innerHTML = incident ? renderIncidentDetail(incident) : renderNotFound();
             lucide.createIcons();
+            if (incident) initMapView(incident);
         }
 
         render();
