@@ -3,40 +3,190 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Inicie sesión en su cuenta</title>
+    <title>Iniciar sesión | UrbanHelp</title>
     <link rel="stylesheet" href="./css/style_login.css">
-    <script src="https://kit.fontawesome.com/your-font-awesome-kit-code.js" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
             <div class="login-decoration">
                 <div class="circles-background">
-                    <img src="./Imganes/UrbanHelp.jpeg" alt="Ícono de computadora portátil" class="laptop-icon">
-                    </div>
+                    <img src="./Imganes/UrbanHelp.jpeg" alt="Logo de UrbanHelp" class="laptop-icon">
+                </div>
+                <div class="brand-copy">
+                    <span class="brand-badge">Plataforma ciudadana</span>
+                    <h1>Gestiona incidencias urbanas de forma ágil</h1>
+                    <p>Accede a tu panel para registrar incidencias, revisar su estado y coordinar su resolución.</p>
+                    <ul class="brand-features">
+                        <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Seguimiento en tiempo real</li>
+                        <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Ubicación en mapa</li>
+                        <li><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Acceso para usuario, técnico y admin</li>
+                    </ul>
+                </div>
             </div>
 
             <div class="login-form-container">
-                <h1>Member Login</h1>
-                <form>
+                <div class="form-header">
+                    <p class="eyebrow">Bienvenido a UrbanHelp</p>
+                    <h2>Inicia sesión</h2>
+                    <p class="form-subtitle">Usa una cuenta de demostración o introduce tu correo para entrar a tu panel.</p>
+                </div>
+
+                <div class="demo-access" aria-label="Accesos rápidos de demostración">
+                    <button type="button" class="demo-chip" data-email="user@urbanhelp.es" data-password="123456" data-role="user">
+                        <i class="fa-solid fa-user" aria-hidden="true"></i>
+                        Ciudadano
+                    </button>
+                    <button type="button" class="demo-chip" data-email="tecnico@urbanhelp.es" data-password="123456" data-role="tecnico">
+                        <i class="fa-solid fa-screwdriver-wrench" aria-hidden="true"></i>
+                        Técnico
+                    </button>
+                    <button type="button" class="demo-chip" data-email="admin@urbanhelp.es" data-password="123456" data-role="admin">
+                        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                        Admin
+                    </button>
+                </div>
+
+                <div id="loginMessage" class="login-message" role="status" aria-live="polite"></div>
+
+                <form id="loginForm" novalidate>
                     <div class="input-group">
                         <i class="fas fa-envelope" aria-hidden="true"></i>
-                        <label for="email-input" class="screen-reader-only">Correo Electrónico</label>
-                        <input type="email" id="email-input" placeholder="Email" required>
+                        <label for="email-input" class="screen-reader-only">Correo electrónico</label>
+                        <input type="email" id="email-input" placeholder="Correo electrónico" autocomplete="email" required>
                     </div>
 
                     <div class="input-group">
                         <i class="fas fa-lock" aria-hidden="true"></i>
                         <label for="password-input" class="screen-reader-only">Contraseña</label>
-                        <input type="password" id="password-input" placeholder="Password" required>
+                        <input type="password" id="password-input" placeholder="Contraseña" autocomplete="current-password" required>
+                        <button type="button" class="toggle-password" id="togglePassword" aria-label="Mostrar u ocultar contraseña">
+                            <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                        </button>
                     </div>
 
-                    <button type="submit" class="login-button">LOGIN</button>
-                    <a href="#" class="forgot-password">¿Has olvidado tu nombre de usuario o contraseña?</a>
+                    <div class="form-options">
+                        <label class="remember-me">
+                            <input type="checkbox" id="rememberSession">
+                            <span>Recordarme</span>
+                        </label>
+                        <a href="#" class="forgot-password">¿Has olvidado tu contraseña?</a>
+                    </div>
+
+                    <button type="submit" class="login-button">
+                        <span>Entrar</span>
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                    </button>
                 </form>
-                <a href="registro.html" class="create-account">Crear cuenta →</a>
+
+                <div class="helper-card">
+                    <strong>Cuentas demo</strong>
+                    <p>Usuario: <span>user@urbanhelp.es</span> · Técnico: <span>tecnico@urbanhelp.es</span> · Admin: <span>admin@urbanhelp.es</span></p>
+                    <p>Contraseña de prueba: <span>123456</span></p>
+                </div>
+
+                <a href="regristo.html" class="create-account">Crear cuenta <span aria-hidden="true">→</span></a>
             </div>
         </div>
     </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email-input');
+        const passwordInput = document.getElementById('password-input');
+        const rememberSession = document.getElementById('rememberSession');
+        const loginMessage = document.getElementById('loginMessage');
+        const togglePassword = document.getElementById('togglePassword');
+        const demoButtons = document.querySelectorAll('.demo-chip');
+
+        const routeByRole = {
+            user: 'user.html',
+            tecnico: 'tecnico.html',
+            admin: 'admin.html'
+        };
+
+        function showMessage(message, type) {
+            loginMessage.textContent = message;
+            loginMessage.className = `login-message ${type ? `is-${type}` : ''}`;
+        }
+
+        function inferRole(email) {
+            const normalized = email.trim().toLowerCase();
+
+            if (normalized.includes('admin')) {
+                return 'admin';
+            }
+
+            if (normalized.includes('tecnico') || normalized.includes('tech')) {
+                return 'tecnico';
+            }
+
+            return 'user';
+        }
+
+        function saveSession(role, email) {
+            const sessionPayload = JSON.stringify({
+                role,
+                email,
+                loginAt: new Date().toISOString()
+            });
+
+            try {
+                const storage = rememberSession.checked ? localStorage : sessionStorage;
+                const fallbackStorage = rememberSession.checked ? sessionStorage : localStorage;
+
+                fallbackStorage.removeItem('urbanHelpSession');
+                storage.setItem('urbanHelpSession', sessionPayload);
+            } catch (error) {
+                console.warn('No se pudo guardar la sesión en el navegador.', error);
+            }
+        }
+
+        demoButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                emailInput.value = button.dataset.email || '';
+                passwordInput.value = button.dataset.password || '';
+                showMessage(`Acceso demo preparado para ${button.dataset.role}.`, 'success');
+                emailInput.focus();
+            });
+        });
+
+        togglePassword.addEventListener('click', () => {
+            const isPassword = passwordInput.type === 'password';
+            passwordInput.type = isPassword ? 'text' : 'password';
+            togglePassword.innerHTML = isPassword
+                ? '<i class="fa-regular fa-eye-slash" aria-hidden="true"></i>'
+                : '<i class="fa-regular fa-eye" aria-hidden="true"></i>';
+        });
+
+        loginForm.addEventListener('submit', (event) => {
+            event.preventDefault();
+
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!email || !password) {
+                showMessage('Introduce tu correo y tu contraseña.', 'error');
+                return;
+            }
+
+            if (password.length < 6) {
+                showMessage('La contraseña debe tener al menos 6 caracteres.', 'error');
+                return;
+            }
+
+            const role = inferRole(email);
+            saveSession(role, email);
+            showMessage('Acceso correcto. Redirigiendo…', 'success');
+
+            window.setTimeout(() => {
+                window.location.href = routeByRole[role] || 'user.html';
+            }, 500);
+        });
+    </script>
 </body>
 </html> 
