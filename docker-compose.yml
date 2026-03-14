@@ -1,17 +1,19 @@
 services:
   db:
-    image: postgres:16-alpine
+    image: mysql:8.0
     container_name: proyectos2-db
     environment:
-      POSTGRES_DB: proyectos2
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      MYSQL_DATABASE: proyectos2
+      MYSQL_ROOT_PASSWORD: postgres
+      MYSQL_USER: postgres
+      MYSQL_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "3306:3306"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/mysql
+      - ./bbdd.sql:/docker-entrypoint-initdb.d/init.sql:ro
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d proyectos2"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u postgres -ppostgres"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -21,10 +23,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: proyectos2-backend
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/proyectos2
-      SPRING_DATASOURCE_USERNAME: postgres
-      SPRING_DATASOURCE_PASSWORD: postgres
     depends_on:
       db:
         condition: service_healthy

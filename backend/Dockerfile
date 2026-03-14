@@ -1,16 +1,12 @@
-FROM maven:3.9.9-eclipse-temurin-21 AS builder
+FROM python:3.12-slim
+
 WORKDIR /app
 
-COPY pom.xml ./
-COPY src ./src
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-RUN mvn -q -DskipTests clean package
-
-FROM eclipse-temurin:21-jre
-WORKDIR /app
-
-COPY --from=builder /app/target/*.jar app.jar
+COPY app ./app
 
 EXPOSE 8080
 
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
