@@ -104,6 +104,7 @@
             const menuItems = [
                 { id: 'dashboard', name: 'Panel Principal', icon: 'layout-dashboard' },
                 { id: 'incidencias', name: 'Incidencias', icon: 'alert-triangle' },
+                { id: 'solicitudes', name: 'Buzón de Técnicos', icon: 'mailbox' },
                 { id: 'usuarios', name: 'Usuarios', icon: 'users' },
                 { id: 'configuracion', name: 'Configuración', icon: 'settings' }
             ];
@@ -118,6 +119,7 @@
             switch (currentTab) {
                 case 'dashboard': renderDashboard(container); break;
                 case 'incidencias': renderIncidencias(container); break;
+                case 'solicitudes': renderSolicitudes(container); break;
                 case 'usuarios': renderUsuarios(container); break;
                 case 'configuracion': renderSettings(container); break;
                 case 'edit-usuario': renderEditUsuario(container, editingId); break;
@@ -227,6 +229,68 @@
                 </div>
             `;
             lucide.createIcons();
+        }
+
+        function renderSolicitudes(container) {
+            // Simulamos datos que vendrían de tu base de datos (Técnicos con estado pendiente)
+            const solicitudesPendientes = [
+                { id: 'SOL001', nombre: 'Juan Pérez', email: 'juan.p@tecnicos.es', fecha: '2023-10-25', especialidad: 'Fontanería' },
+                { id: 'SOL002', nombre: 'Roberto Gómez', email: 'roberto.g@tecnicos.es', fecha: '2023-10-26', especialidad: 'Electricidad' }
+            ];
+
+            container.innerHTML = `
+                <div class="space-y-6 fade-in">
+                    <div class="flex justify-between items-center">
+                        <div>
+                            <h1 class="text-3xl font-bold">Buzón de Solicitudes</h1>
+                            <p class="text-gray-500">Aprobación de nuevos técnicos para la plataforma.</p>
+                        </div>
+                        <span class="bg-blue-100 text-blue-600 px-4 py-1 rounded-full text-sm font-bold">
+                            ${solicitudesPendientes.length} Pendientes
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        ${solicitudesPendientes.length > 0 ? solicitudesPendientes.map(sol => `
+                            <div class="bg-white p-6 rounded-2xl border shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:border-blue-300 transition-all">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
+                                        <i data-lucide="user-plus"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-lg">${sol.nombre}</h3>
+                                        <p class="text-sm text-gray-500">${sol.email} • <span class="text-blue-600 font-medium">${sol.especialidad}</span></p>
+                                        <p class="text-[10px] text-gray-400 uppercase mt-1 font-mono">ID: ${sol.id} • Recibida: ${sol.fecha}</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 w-full md:w-auto">
+                                    <button onclick="gestionarSolicitud('${sol.id}', 'aceptar')" class="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all">
+                                        <i data-lucide="check" class="w-4 h-4"></i> Aceptar
+                                    </button>
+                                    <button onclick="gestionarSolicitud('${sol.id}', 'rechazar')" class="flex-1 md:flex-none bg-white border border-red-200 text-red-600 px-4 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-all">
+                                        <i data-lucide="x" class="w-4 h-4"></i> Rechazar
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('') : `
+                            <div class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed">
+                                <i data-lucide="inbox" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+                                <p class="text-gray-500">No hay solicitudes pendientes en este momento.</p>
+                            </div>
+                        `}
+                    </div>
+                </div>
+            `;
+            lucide.createIcons();
+        }
+
+        function gestionarSolicitud(id, accion) {
+            const confirmacion = confirm(`¿Estás seguro de que deseas ${accion} esta solicitud?`);
+            if (confirmacion) {
+                alert(`Solicitud ${id} ha sido ${accion === 'aceptar' ? 'aprobada con éxito. El técnico ya puede acceder.' : 'rechazada.'}`);
+                // Aquí refrescarías la lista o harías el fetch a tu backend
+                switchTab('solicitudes'); 
+            }
         }
 
         // --- EDICIÓN DE INCIDENCIA (CON NUEVOS CAMPOS) ---
