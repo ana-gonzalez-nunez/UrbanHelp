@@ -3,7 +3,7 @@ CREATE DATABASE IF NOT EXISTS UrbanHelp;
 USE UrbanHelp;
 
 -- ROL --
-/*CREATE TABLE Rol (
+CREATE TABLE Rol (
     IdRol INT AUTO_INCREMENT PRIMARY KEY,
     Nombre VARCHAR(50) NOT NULL,
     Descripcion VARCHAR(200)
@@ -17,7 +17,7 @@ INSERT INTO Rol (IdRol, Nombre, Descripcion) VALUES
 (5, 'Supervisor', 'Controla calidad de actuaciones'),
 (6, 'Operador', 'Atiende incidencias iniciales'),
 (7, 'Inspector', 'Revisa incidencias en campo');
-*/
+
 
 -- SERVICIO --
 CREATE TABLE Servicio (
@@ -49,16 +49,17 @@ CREATE TABLE Usuario (
     Telefono VARCHAR(20),
     FechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP,
     EstadoCuenta BOOLEAN DEFAULT TRUE,
-    rol ENUM('Ciudadano','Tecnico','Administrador') NOT NULL,
-    /*IdRol INT NOT NULL, */
+    /*rol ENUM('Ciudadano','Tecnico','Administrador') NOT NULL,*/
+    IdRol INT NOT NULL, 
     IdServicio INT NULL,
 
     CONSTRAINT FK_Usuario_Servicio
         FOREIGN KEY (IdServicio) REFERENCES Servicio(IdServicio)
+    CONSTRAINT FK_Usuario_Rol
+        FOREIGN KEY (IdRol) REFERENCES Rol(IdRol)
 );
 
-    /*CONSTRAINT FK_Usuario_Rol
-        FOREIGN KEY (IdRol) REFERENCES Rol(IdRol)*/
+
 
 INSERT INTO Usuario (IdUsuario, Nombre, Apellido1, Apellido2, Email, Contrasena, Telefono, FechaRegistro, EstadoCuenta, rol, IdServicio)
 VALUES
