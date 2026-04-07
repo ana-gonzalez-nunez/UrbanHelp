@@ -4,10 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestor Municipal Pro - v3.0 Completa</title>
+    <title>Gestor Municipal Pro - v3.0 (Data Sync)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="user-data.js"></script>
+    
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -64,28 +66,22 @@
     </div>
 
     <script>
-        // ============= DATOS MOCK COMPLETOS (RESTAURADOS) =============
-        let mockIncidencias = [
-            { id: 'INC001', titulo: 'Farola fundida en Calle Mayor', descripcion: 'La farola número 45 de Calle Mayor no funciona desde hace una semana.', categoria: 'alumbrado', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Calle Mayor, 45', ciudadanoNombre: 'María García López', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-20', notas: ['Técnico asignado'] },
-            { id: 'INC002', titulo: 'Contenedores desbordados', descripcion: 'Los contenedores de basura en Plaza España llevan días sin recoger.', categoria: 'limpieza', estado: 'resuelta', prioridad: 'urgente', ubicacion: 'Plaza España', ciudadanoNombre: 'Juan Martínez', tecnicoAsignadoNombre: 'Ana Fernández', fechaCreacion: '2026-02-18', notas: ['Incidencia resuelta'] },
-            { id: 'INC003', titulo: 'Banco roto en el Retiro', descripcion: 'Banco de madera roto y con riesgo de astillas.', categoria: 'mobiliario', estado: 'pendiente', prioridad: 'media', ubicacion: 'Parque del Retiro', ciudadanoNombre: 'Laura Pérez', fechaCreacion: '2026-02-24', notas: [] },
-            { id: 'INC004', titulo: 'Bache en Av. Libertad', descripcion: 'Bache de gran tamaño en el carril derecho.', categoria: 'vias', estado: 'en_proceso', prioridad: 'alta', ubicacion: 'Avenida Libertad, km 2.3', ciudadanoNombre: 'Pedro González', tecnicoAsignadoNombre: 'Miguel Ángel Torres', fechaCreacion: '2026-02-21', notas: ['Inspección realizada'] },
-            { id: 'INC005', titulo: 'Grifería sin agua en parque', descripcion: 'Las fuentes del parque infantil no funcionan.', categoria: 'otros', estado: 'en_proceso', prioridad: 'media', ubicacion: 'Zona Norte', ciudadanoNombre: 'Roberto Sánchez', tecnicoAsignadoNombre: 'Carlos Rodríguez', fechaCreacion: '2026-02-25', notas: [] },
-            { id: 'INC008', titulo: 'Semáforo en ámbar fijo', descripcion: 'El semáforo no cambia de color.', categoria: 'vias', estado: 'pendiente', prioridad: 'media', ubicacion: 'Av. Principal', ciudadanoNombre: 'Ángel Moreno', fechaCreacion: '2026-02-26', notas: [] },
-            { id: 'INC010', titulo: 'Papelera rota en plaza', descripcion: 'Papelera pública rota.', categoria: 'mobiliario', estado: 'pendiente', prioridad: 'media', ubicacion: 'Plaza Mayor', ciudadanoNombre: 'Dolores Ruiz', fechaCreacion: '2026-02-25', notas: [] }
+        // --- ADAPTACIÓN DE DATOS ---
+        // Como tu user-data.js usa 'mockIncidents', lo usamos globalmente
+        let incidenciasActuales = typeof getIncidents === 'function' ? getIncidents() : [];
+        
+        // Simulación de lista de usuarios (basado en el perfil que mandaste y técnicos mencionados)
+        let listaUsuarios = [
+            { id: 'USR001', nombre: 'María García López', email: 'maria.garcia@email.com', rol: 'ciudadano', stats: '5 reportadas' },
+            { id: 'TEC001', nombre: 'Carlos Rodríguez', email: 'carlos.r@municipio.es', rol: 'tecnico', stats: '45 resueltas' },
+            { id: 'TEC002', nombre: 'Ana Fernández', email: 'ana.f@municipio.es', rol: 'tecnico', stats: '38 resueltas' },
+            { id: 'GEST001', nombre: 'Admin Sistema', email: 'admin@municipio.es', rol: 'gestor', stats: '-' }
         ];
 
-        const mockUsuarios = [
-            { id: 'USR001', nombre: 'María García López', email: 'maria.garcia@email.com', rol: 'ciudadano', activo: true, stats: '5 reportadas' },
-            { id: 'TEC001', nombre: 'Carlos Rodríguez', email: 'carlos.r@municipio.es', rol: 'tecnico', activo: true, stats: '45 resueltas' },
-            { id: 'TEC002', nombre: 'Ana Fernández', email: 'ana.f@municipio.es', rol: 'tecnico', activo: true, stats: '38 resueltas' },
-            { id: 'GEST001', nombre: 'Admin Sistema', email: 'admin@municipio.es', rol: 'gestor', activo: true, stats: '-' }
-        ];
-
-        // Estado de filtros global
         let filtros = { texto: '', estado: 'todas', categoria: 'todas' };
         let currentTab = 'dashboard';
         let sidebarOpen = false;
+        let editingId = null;
 
         function toggleSidebar() {
             sidebarOpen = !sidebarOpen;
@@ -93,18 +89,22 @@
             document.getElementById('backdrop').classList.toggle('hidden', !sidebarOpen);
         }
 
-        function switchTab(tabId) {
+        function switchTab(tabId, id = null) {
             currentTab = tabId;
+            editingId = id;
             renderApp();
+            window.scrollTo(0, 0);
         }
 
         function renderApp() {
             const container = document.getElementById('app-container');
             const nav = document.getElementById('nav-links');
+            incidenciasActuales = getIncidents(); // Refrescar datos desde localStorage
 
             const menuItems = [
                 { id: 'dashboard', name: 'Panel Principal', icon: 'layout-dashboard' },
                 { id: 'incidencias', name: 'Incidencias', icon: 'alert-triangle' },
+                { id: 'solicitudes', name: 'Buzón de Técnicos', icon: 'mailbox' },
                 { id: 'usuarios', name: 'Usuarios', icon: 'users' },
                 { id: 'configuracion', name: 'Configuración', icon: 'settings' }
             ];
@@ -119,19 +119,21 @@
             switch (currentTab) {
                 case 'dashboard': renderDashboard(container); break;
                 case 'incidencias': renderIncidencias(container); break;
+                case 'solicitudes': renderSolicitudes(container); break;
                 case 'usuarios': renderUsuarios(container); break;
                 case 'configuracion': renderSettings(container); break;
+                case 'edit-usuario': renderEditUsuario(container, editingId); break;
+                case 'edit-incidencia': renderEditIncidencia(container, editingId); break;
             }
             lucide.createIcons();
         }
 
-        // --- DASHBOARD (RESTAURADO) ---
         function renderDashboard(container) {
             const stats = {
-                total: mockIncidencias.length,
-                pendientes: mockIncidencias.filter(i => i.estado === 'pendiente').length,
-                resueltas: mockIncidencias.filter(i => i.estado === 'resuelta').length,
-                urgentes: mockIncidencias.filter(i => i.prioridad === 'urgente').length
+                total: incidenciasActuales.length,
+                pendientes: incidenciasActuales.filter(i => i.status === 'pendiente').length,
+                resueltas: incidenciasActuales.filter(i => i.status === 'resuelta').length,
+                urgentes: incidenciasActuales.filter(i => i.priority === 'alta').length
             };
 
             container.innerHTML = `
@@ -141,7 +143,7 @@
                         ${renderStatCard('Total Incidencias', stats.total, 'blue', 'alert-triangle')}
                         ${renderStatCard('Pendientes', stats.pendientes, 'orange', 'clock')}
                         ${renderStatCard('Resueltas', stats.resueltas, 'green', 'check-circle-2')}
-                        ${renderStatCard('Urgentes', stats.urgentes, 'red', 'alert-circle')}
+                        ${renderStatCard('Urgentes/Altas', stats.urgentes, 'red', 'alert-circle')}
                     </div>
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                         <div class="bg-white p-6 rounded-2xl border shadow-sm">
@@ -151,10 +153,10 @@
                         <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
                             <h3 class="font-bold p-6 border-b">Actividad Reciente</h3>
                             <div class="divide-y divide-gray-50">
-                                ${mockIncidencias.slice(0, 4).map(inc => `
+                                ${incidenciasActuales.slice(0, 4).map(inc => `
                                     <div class="p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center" onclick="openModal('${inc.id}')">
-                                        <div><p class="text-sm font-bold">${inc.titulo}</p><p class="text-xs text-gray-400">${inc.ubicacion}</p></div>
-                                        ${renderBadge(inc.estado)}
+                                        <div><p class="text-sm font-bold">${inc.title}</p><p class="text-xs text-gray-400">${inc.location}</p></div>
+                                        ${getStatusBadge(inc.status)}
                                     </div>
                                 `).join('')}
                             </div>
@@ -165,20 +167,19 @@
             initDashboardCharts();
         }
 
-        // --- INCIDENCIAS (CON FILTROS Y NUEVO REPORTE) ---
         function renderIncidencias(container) {
-            const filtradas = mockIncidencias.filter(i => {
-                const cumpleTexto = i.titulo.toLowerCase().includes(filtros.texto.toLowerCase()) || i.id.toLowerCase().includes(filtros.texto.toLowerCase());
-                const cumpleEstado = filtros.estado === 'todas' || i.estado === filtros.estado;
-                const cumpleCat = filtros.categoria === 'todas' || i.categoria === filtros.categoria;
+            const filtradas = incidenciasActuales.filter(i => {
+                const cumpleTexto = i.title.toLowerCase().includes(filtros.texto.toLowerCase()) || i.id.toLowerCase().includes(filtros.texto.toLowerCase());
+                const cumpleEstado = filtros.estado === 'todas' || i.status === filtros.estado;
+                const cumpleCat = filtros.categoria === 'todas' || i.category === filtros.categoria;
                 return cumpleTexto && cumpleEstado && cumpleCat;
             });
 
             container.innerHTML = `
                 <div class="space-y-6 fade-in">
                     <div class="flex justify-between items-center">
-                        <div><h1 class="text-3xl font-bold">Incidencias</h1><p class="text-gray-500">Gestión de la red urbana.</p></div>
-                        <button onclick="abrirFormularioReporte()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all">
+                        <div><h1 class="text-3xl font-bold">Incidencias</h1><p class="text-gray-500">Gestión urbana sincronizada.</p></div>
+                        <button onclick="abrirFormularioReporte()" class="bg-blue-600 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-700 shadow-lg transition-all">
                             <i data-lucide="plus-circle" class="w-5 h-5"></i> Nuevo Reporte
                         </button>
                     </div>
@@ -186,20 +187,13 @@
                     <div class="bg-white p-4 rounded-2xl border shadow-sm flex flex-col md:flex-row gap-4">
                         <div class="flex-1 relative">
                             <i data-lucide="search" class="absolute left-3 top-2.5 w-4 h-4 text-gray-400"></i>
-                            <input type="text" id="search-input" value="${filtros.texto}" oninput="actualizarFiltros('texto', this.value)" placeholder="Buscar por ID o Título..." class="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 ring-blue-100">
+                            <input type="text" value="${filtros.texto}" oninput="actualizarFiltros('texto', this.value)" placeholder="Buscar por ID o Título..." class="w-full pl-10 pr-4 py-2 border rounded-xl outline-none focus:ring-2 ring-blue-100">
                         </div>
                         <select onchange="actualizarFiltros('estado', this.value)" class="border rounded-xl px-4 py-2 bg-gray-50 outline-none">
-                            <option value="todas" ${filtros.estado === 'todas' ? 'selected' : ''}>Todos los Estados</option>
+                            <option value="todas">Todos los Estados</option>
                             <option value="pendiente" ${filtros.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>
-                            <option value="en_proceso" ${filtros.estado === 'en_proceso' ? 'selected' : ''}>En Proceso</option>
+                            <option value="en-proceso" ${filtros.estado === 'en-proceso' ? 'selected' : ''}>En Proceso</option>
                             <option value="resuelta" ${filtros.estado === 'resuelta' ? 'selected' : ''}>Resuelta</option>
-                        </select>
-                        <select onchange="actualizarFiltros('categoria', this.value)" class="border rounded-xl px-4 py-2 bg-gray-50 outline-none">
-                            <option value="todas">Todas las Categorías</option>
-                            <option value="alumbrado">Alumbrado</option>
-                            <option value="limpieza">Limpieza</option>
-                            <option value="vias">Vías</option>
-                            <option value="mobiliario">Mobiliario</option>
                         </select>
                     </div>
 
@@ -215,19 +209,20 @@
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-gray-100 text-sm">
-                                ${filtradas.length > 0 ? filtradas.map(inc => `
+                                ${filtradas.map(inc => `
                                     <tr class="hover:bg-blue-50/20 transition-colors">
-                                        <td class="px-6 py-4"><p class="font-bold">${inc.titulo}</p><p class="text-[10px] font-mono text-gray-400">${inc.id}</p></td>
-                                        <td class="px-6 py-4">${renderBadge(inc.estado)}</td>
-                                        <td class="px-6 py-4 font-bold text-[10px] uppercase ${getPriorityColor(inc.prioridad)}">${inc.prioridad}</td>
+                                        <td class="px-6 py-4"><p class="font-bold">${inc.title}</p><p class="text-[10px] font-mono text-gray-400">${inc.id}</p></td>
+                                        <td class="px-6 py-4">${getStatusBadge(inc.status)}</td>
+                                        <td class="px-6 py-4 font-bold text-[10px] uppercase ${getPriorityColor(inc.priority)}">${inc.priority}</td>
                                         <td class="px-6 py-4">
                                             <button onclick="mostrarSelectorTecnicos('${inc.id}')" class="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Asignar</button>
                                         </td>
-                                        <td class="px-6 py-4 text-right">
+                                        <td class="px-6 py-4 text-right flex justify-end gap-1">
                                             <button onclick="openModal('${inc.id}')" class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg"><i data-lucide="eye" class="w-4 h-4"></i></button>
+                                            <button onclick="switchTab('edit-incidencia', '${inc.id}')" class="text-orange-600 hover:bg-orange-50 p-2 rounded-lg"><i data-lucide="edit-3" class="w-4 h-4"></i></button>
                                         </td>
                                     </tr>
-                                `).join('') : `<tr><td colspan="5" class="p-12 text-center text-gray-400 italic">No se encontraron incidencias con estos filtros.</td></tr>`}
+                                `).join('')}
                             </tbody>
                         </table>
                     </div>
@@ -236,97 +231,214 @@
             lucide.createIcons();
         }
 
-        // ============= FUNCIONALIDAD: NUEVO REPORTE =============
-        function abrirFormularioReporte() {
-            const modal = document.getElementById('modal');
-            const content = document.getElementById('modal-content');
-            
-            content.innerHTML = `
-                <div class="space-y-6 fade-in relative">
-                    <button onclick="closeModal()" class="absolute -top-2 -right-2 p-2 hover:bg-gray-100 rounded-full text-gray-400"><i data-lucide="x"></i></button>
-                    
-                    <h2 class="text-2xl font-bold flex items-center gap-2"><i data-lucide="edit-3" class="text-blue-600"></i> Nuevo Reporte</h2>
-                    <form id="form-reporte" class="grid grid-cols-1 md:grid-cols-2 gap-4" onsubmit="guardarNuevaIncidencia(event)">
-                        <div class="md:col-span-2">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase">Título de la incidencia</label>
-                            <input type="text" name="titulo" required class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100" placeholder="Ej: Fuga de agua en Av. Goya">
-                        </div>
+        function renderSolicitudes(container) {
+            // Simulamos datos que vendrían de tu base de datos (Técnicos con estado pendiente)
+            const solicitudesPendientes = [
+                { id: 'SOL001', nombre: 'Juan Pérez', email: 'juan.p@tecnicos.es', fecha: '2023-10-25', especialidad: 'Fontanería' },
+                { id: 'SOL002', nombre: 'Roberto Gómez', email: 'roberto.g@tecnicos.es', fecha: '2023-10-26', especialidad: 'Electricidad' }
+            ];
+
+            container.innerHTML = `
+                <div class="space-y-6 fade-in">
+                    <div class="flex justify-between items-center">
                         <div>
-                            <label class="text-[10px] font-bold text-gray-400 uppercase">Categoría</label>
-                            <select name="categoria" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none bg-gray-50">
-                                <option value="limpieza">Limpieza</option>
-                                <option value="alumbrado">Alumbrado</option>
-                                <option value="vias">Vías</option>
-                                <option value="mobiliario">Mobiliario</option>
-                                <option value="otros">Otros</option>
-                            </select>
+                            <h1 class="text-3xl font-bold">Buzón de Solicitudes</h1>
+                            <p class="text-gray-500">Aprobación de nuevos técnicos para la plataforma.</p>
                         </div>
-                        <div>
-                            <label class="text-[10px] font-bold text-gray-400 uppercase">Prioridad</label>
-                            <select name="prioridad" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none bg-gray-50">
-                                <option value="baja">Baja</option>
-                                <option value="media">Media</option>
-                                <option value="alta" selected>Alta</option>
-                                <option value="urgente">Urgente</option>
-                            </select>
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase">Ubicación exacta</label>
-                            <input type="text" name="ubicacion" required class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100" placeholder="Ej: Calle Gran Vía, 22">
-                        </div>
-                        <div class="md:col-span-2">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase">Descripción detallada</label>
-                            <textarea name="descripcion" rows="3" required class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100" placeholder="Describe lo que sucede..."></textarea>
-                        </div>
-                        <div class="md:col-span-2 pt-4 flex gap-3">
-                            <button type="button" onclick="closeModal()" class="flex-1 py-3 font-bold text-gray-400 hover:bg-gray-50 rounded-xl transition-all">Cancelar</button>
-                            <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg shadow-blue-200 hover:bg-blue-700 transition-all">Crear Reporte</button>
-                        </div>
-                    </form>
+                        <span class="bg-blue-100 text-blue-600 px-4 py-1 rounded-full text-sm font-bold">
+                            ${solicitudesPendientes.length} Pendientes
+                        </span>
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-4">
+                        ${solicitudesPendientes.length > 0 ? solicitudesPendientes.map(sol => `
+                            <div class="bg-white p-6 rounded-2xl border shadow-sm flex flex-col md:flex-row justify-between items-center gap-4 hover:border-blue-300 transition-all">
+                                <div class="flex items-center gap-4">
+                                    <div class="w-12 h-12 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center">
+                                        <i data-lucide="user-plus"></i>
+                                    </div>
+                                    <div>
+                                        <h3 class="font-bold text-lg">${sol.nombre}</h3>
+                                        <p class="text-sm text-gray-500">${sol.email} • <span class="text-blue-600 font-medium">${sol.especialidad}</span></p>
+                                        <p class="text-[10px] text-gray-400 uppercase mt-1 font-mono">ID: ${sol.id} • Recibida: ${sol.fecha}</p>
+                                    </div>
+                                </div>
+                                <div class="flex gap-2 w-full md:w-auto">
+                                    <button onclick="gestionarSolicitud('${sol.id}', 'aceptar')" class="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all">
+                                        <i data-lucide="check" class="w-4 h-4"></i> Aceptar
+                                    </button>
+                                    <button onclick="gestionarSolicitud('${sol.id}', 'rechazar')" class="flex-1 md:flex-none bg-white border border-red-200 text-red-600 px-4 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-all">
+                                        <i data-lucide="x" class="w-4 h-4"></i> Rechazar
+                                    </button>
+                                </div>
+                            </div>
+                        `).join('') : `
+                            <div class="text-center py-20 bg-gray-50 rounded-2xl border-2 border-dashed">
+                                <i data-lucide="inbox" class="w-12 h-12 text-gray-300 mx-auto mb-4"></i>
+                                <p class="text-gray-500">No hay solicitudes pendientes en este momento.</p>
+                            </div>
+                        `}
+                    </div>
                 </div>
             `;
-            modal.classList.add('active');
             lucide.createIcons();
         }
 
-        function guardarNuevaIncidencia(event) {
-            event.preventDefault();
-            const formData = new FormData(event.target);
-            const nueva = {
-                id: 'INC' + Math.floor(100 + Math.random() * 900),
-                titulo: formData.get('titulo'),
-                categoria: formData.get('categoria'),
-                prioridad: formData.get('prioridad'),
-                ubicacion: formData.get('ubicacion'),
-                descripcion: formData.get('descripcion'),
-                estado: 'pendiente',
-                ciudadanoNombre: 'Admin (Manual)',
-                fechaCreacion: new Date().toISOString().split('T')[0],
-                notas: []
-            };
-
-            mockIncidencias.unshift(nueva);
-            closeModal();
-            renderApp();
-            alert('¡Nueva incidencia reportada con éxito!');
+        function gestionarSolicitud(id, accion) {
+            const confirmacion = confirm(`¿Estás seguro de que deseas ${accion} esta solicitud?`);
+            if (confirmacion) {
+                alert(`Solicitud ${id} ha sido ${accion === 'aceptar' ? 'aprobada con éxito. El técnico ya puede acceder.' : 'rechazada.'}`);
+                // Aquí refrescarías la lista o harías el fetch a tu backend
+                switchTab('solicitudes'); 
+            }
         }
 
-        // ============= LÓGICA DE ASIGNACIÓN (RESTAURADA) =============
+        // --- EDICIÓN DE INCIDENCIA (CON NUEVOS CAMPOS) ---
+        function renderEditIncidencia(container, incId) {
+            const inc = incidenciasActuales.find(i => i.id === incId);
+            container.innerHTML = `
+                <div class="fade-in max-w-2xl mx-auto space-y-6">
+                    <button onclick="switchTab('incidencias')" class="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver a lista
+                    </button>
+                    <div class="bg-white p-8 rounded-2xl border shadow-sm">
+                        <h2 class="text-2xl font-bold mb-6">Editar Incidencia ${inc.id}</h2>
+                        <form onsubmit="actualizarIncidenciaForm(event, '${inc.id}')" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="md:col-span-2">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase">Título</label>
+                                <input type="text" name="title" value="${inc.title}" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100">
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase">Estado</label>
+                                <select name="status" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none bg-gray-50">
+                                    <option value="pendiente" ${inc.status === 'pendiente' ? 'selected' : ''}>Pendiente</option>
+                                    <option value="en-proceso" ${inc.status === 'en-proceso' ? 'selected' : ''}>En Proceso</option>
+                                    <option value="resuelta" ${inc.status === 'resuelta' ? 'selected' : ''}>Resuelta</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-gray-400 uppercase">Prioridad</label>
+                                <select name="priority" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none bg-gray-50">
+                                    <option value="baja" ${inc.priority === 'baja' ? 'selected' : ''}>Baja</option>
+                                    <option value="media" ${inc.priority === 'media' ? 'selected' : ''}>Media</option>
+                                    <option value="alta" ${inc.priority === 'alta' ? 'selected' : ''}>Alta</option>
+                                </select>
+                            </div>
+                            <div class="md:col-span-2">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase">Descripción</label>
+                                <textarea name="description" rows="4" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100">${inc.description}</textarea>
+                            </div>
+                            <div class="md:col-span-2 pt-4 flex gap-3">
+                                <button type="submit" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-blue-700 transition-all">Guardar Cambios</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>`;
+        }
+
+        function actualizarIncidenciaForm(event, incId) {
+            event.preventDefault();
+            const formData = new FormData(event.target);
+            const index = incidenciasActuales.findIndex(i => i.id === incId);
+            
+            incidenciasActuales[index] = {
+                ...incidenciasActuales[index],
+                title: formData.get('title'),
+                status: formData.get('status'),
+                priority: formData.get('priority'),
+                description: formData.get('description')
+            };
+            
+            saveIncidents(incidenciasActuales);
+            alert('Cambios guardados en LocalStorage');
+            switchTab('incidencias');
+        }
+
+        // --- USUARIOS ---
+        function renderUsuarios(container) {
+            container.innerHTML = `
+                <div class="fade-in space-y-6">
+                    <h1 class="text-3xl font-bold">Usuarios</h1>
+                    <div class="bg-white rounded-2xl border shadow-sm overflow-hidden">
+                        <table class="w-full text-left text-sm">
+                            <thead class="bg-gray-50 border-b text-[10px] uppercase font-bold text-gray-400">
+                                <tr>
+                                    <th class="p-4">Usuario</th>
+                                    <th class="p-4">Rol</th>
+                                    <th class="p-4 text-right">Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${listaUsuarios.map(u => `
+                                    <tr class="border-b hover:bg-gray-50 transition-all">
+                                        <td class="p-4 flex items-center gap-3">
+                                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">${u.nombre.substring(0,2)}</div>
+                                            <div><p class="font-bold">${u.nombre}</p><p class="text-xs text-gray-400">${u.email}</p></div>
+                                        </td>
+                                        <td class="p-4"><span class="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold uppercase">${u.rol}</span></td>
+                                        <td class="p-4 text-right">
+                                            <button onclick="switchTab('edit-usuario', '${u.id}')" class="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
+                                                <i data-lucide="edit-2" class="w-4 h-4"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>`;
+        }
+
+        function renderEditUsuario(container, userId) {
+            const user = listaUsuarios.find(u => u.id === userId);
+            container.innerHTML = `
+                <div class="fade-in max-w-xl mx-auto space-y-6">
+                    <button onclick="switchTab('usuarios')" class="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors">
+                        <i data-lucide="arrow-left" class="w-4 h-4"></i> Volver
+                    </button>
+                    <div class="bg-white p-8 rounded-2xl border shadow-sm space-y-6">
+                        <h2 class="text-2xl font-bold">Editar Rol</h2>
+                        <div class="flex items-center gap-4 p-4 bg-gray-50 rounded-xl">
+                            <div class="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">${user.nombre.substring(0,2)}</div>
+                            <div><p class="font-bold">${user.nombre}</p><p class="text-sm text-gray-500">${user.email}</p></div>
+                        </div>
+                        <form onsubmit="guardarRolForm(event, '${user.id}')" class="space-y-4">
+                            <select name="rol" class="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 ring-blue-100">
+                                <option value="ciudadano" ${user.rol === 'ciudadano' ? 'selected' : ''}>Ciudadano</option>
+                                <option value="tecnico" ${user.rol === 'tecnico' ? 'selected' : ''}>Técnico</option>
+                                <option value="gestor" ${user.rol === 'gestor' ? 'selected' : ''}>Gestor</option>
+                            </select>
+                            <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">Actualizar Rol</button>
+                        </form>
+                    </div>
+                </div>`;
+        }
+
+        function guardarRolForm(event, userId) {
+            event.preventDefault();
+            const nuevoRol = new FormData(event.target).get('rol');
+            const idx = listaUsuarios.findIndex(u => u.id === userId);
+            listaUsuarios[idx].rol = nuevoRol;
+            alert('Rol actualizado localmente');
+            switchTab('usuarios');
+        }
+
+        // --- ASIGNACIÓN ---
         function mostrarSelectorTecnicos(id) {
             const modal = document.getElementById('modal');
             const content = document.getElementById('modal-content');
-            const tecnicos = mockUsuarios.filter(u => u.rol === 'tecnico');
-            const inc = mockIncidencias.find(i => i.id === id);
+            const tecnicos = listaUsuarios.filter(u => u.rol === 'tecnico');
+            const inc = incidenciasActuales.find(i => i.id === id);
 
             content.innerHTML = `
                 <div class="space-y-6 fade-in relative">
                     <button onclick="closeModal()" class="absolute -top-2 -right-2 p-2 hover:bg-gray-100 rounded-full text-gray-400"><i data-lucide="x"></i></button>
-                    <div class="flex items-center gap-4"><button onclick="openModal('${id}')" class="p-2 hover:bg-gray-100 rounded-full"><i data-lucide="arrow-left" class="w-5 h-5"></i></button><h2 class="text-xl font-bold">Asignar Técnico</h2></div>
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100"><p class="text-xs text-blue-500 font-bold uppercase">Incidencia</p><p class="text-sm font-bold">${inc.titulo}</p></div>
+                    <h2 class="text-xl font-bold">Asignar Técnico</h2>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100"><p class="text-sm font-bold">${inc.title}</p></div>
                     <div class="space-y-2">
                         ${tecnicos.map(t => `
-                            <div onclick="confirmarAsignacion('${id}', '${t.id}')" class="flex items-center justify-between p-4 border rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer group transition-all">
-                                <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">${t.nombre.substring(0,2)}</div><div><p class="text-sm font-bold">${t.nombre}</p><p class="text-[10px] text-gray-400">${t.stats}</p></div></div>
+                            <div onclick="confirmarAsignacionT('${id}', '${t.nombre}')" class="flex items-center justify-between p-4 border rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer group transition-all">
+                                <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">${t.nombre.substring(0,2)}</div><div><p class="text-sm font-bold">${t.nombre}</p></div></div>
                                 <i data-lucide="user-check" class="w-4 h-4 text-transparent group-hover:text-blue-600"></i>
                             </div>
                         `).join('')}
@@ -337,84 +449,62 @@
             lucide.createIcons();
         }
 
-        function confirmarAsignacion(incId, tecId) {
-            const incIndex = mockIncidencias.findIndex(i => i.id === incId);
-            const tec = mockUsuarios.find(u => u.id === tecId);
-            mockIncidencias[incIndex].tecnicoAsignadoNombre = tec.nombre;
-            mockIncidencias[incIndex].estado = 'en_proceso';
-            mockIncidencias[incId].notas.push(`Asignado a ${tec.nombre} el ${new Date().toLocaleDateString()}`);
+        function confirmarAsignacionT(incId, tecNombre) {
+            const index = incidenciasActuales.findIndex(i => i.id === incId);
+            incidenciasActuales[index].assignedTechnician = tecNombre;
+            incidenciasActuales[index].status = 'en-proceso';
+            saveIncidents(incidenciasActuales);
             closeModal();
             renderApp();
         }
 
-        // ============= FUNCIONES DE UTILIDAD (RESTAURADAS) =============
-        function actualizarFiltros(campo, valor) {
-            filtros[campo] = valor;
-            renderIncidencias(document.getElementById('app-container'));
-        }
-
+        // --- UTILIDADES ---
         function openModal(id) {
-            const inc = mockIncidencias.find(i => i.id === id);
+            const inc = incidenciasActuales.find(i => i.id === id);
             const content = document.getElementById('modal-content');
             content.innerHTML = `
                 <div class="space-y-6 relative">
                     <button onclick="closeModal()" class="absolute -top-2 -right-2 p-2 hover:bg-gray-100 rounded-full text-gray-400"><i data-lucide="x"></i></button>
-                    <div><div class="mb-2">${renderBadge(inc.estado)}</div><h2 class="text-2xl font-bold">${inc.titulo}</h2><p class="text-[10px] font-mono text-gray-400 uppercase">Expediente: ${inc.id}</p></div>
+                    <div><div class="mb-2">${getStatusBadge(inc.status)}</div><h2 class="text-2xl font-bold">${inc.title}</h2></div>
                     <div class="grid grid-cols-2 gap-4 py-6 border-y border-gray-100 text-sm">
-                        <div><p class="text-xs font-bold text-gray-400 uppercase">Ubicación</p><p class="font-bold flex items-center gap-1"><i data-lucide="map-pin" class="w-3 h-3"></i> ${inc.ubicacion}</p></div>
-                        <div><p class="text-xs font-bold text-gray-400 uppercase">Prioridad</p><p class="font-bold uppercase ${getPriorityColor(inc.prioridad)}">${inc.prioridad}</p></div>
-                        <div><p class="text-xs font-bold text-gray-400 uppercase">Reportado por</p><p class="font-bold">${inc.ciudadanoNombre}</p></div>
-                        <div><p class="text-xs font-bold text-gray-400 uppercase">Técnico</p><p class="font-bold">${inc.tecnicoAsignadoNombre || 'Sin asignar'}</p></div>
+                        <div><p class="text-xs font-bold text-gray-400 uppercase">Ubicación</p><p class="font-bold">${inc.location}</p></div>
+                        <div><p class="text-xs font-bold text-gray-400 uppercase">Ciudadano</p><p class="font-bold">${inc.citizenName || 'Anónimo'}</p></div>
+                        <div><p class="text-xs font-bold text-gray-400 uppercase">Técnico</p><p class="font-bold">${inc.assignedTechnician || 'Sin asignar'}</p></div>
                     </div>
-                    <div><p class="text-xs font-bold text-gray-400 uppercase mb-2">Descripción</p><p class="bg-gray-50 p-4 rounded-xl text-gray-600 text-sm leading-relaxed border">${inc.descripcion}</p></div>
-                    <div class="flex gap-3"><button onclick="mostrarSelectorTecnicos('${inc.id}')" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">Asignar Personal</button><button onclick="archivarIncidencia('${inc.id}')" class="flex-1 border font-bold py-3 rounded-xl hover:bg-gray-50">Archivar</button></div>
+                    <div><p class="text-xs font-bold text-gray-400 uppercase mb-2">Descripción</p><p class="bg-gray-50 p-4 rounded-xl text-gray-600 text-sm border">${inc.description}</p></div>
+                    <div class="flex gap-3">
+                        <button onclick="mostrarSelectorTecnicos('${inc.id}')" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">Asignar Personal</button>
+                        <button onclick="closeModal()" class="flex-1 border font-bold py-3 rounded-xl hover:bg-gray-50">Cerrar</button>
+                    </div>
                 </div>
             `;
             document.getElementById('modal').classList.add('active');
             lucide.createIcons();
         }
 
-        function archivarIncidencia(id) {
-            const index = mockIncidencias.findIndex(i => i.id === id);
-            if(confirm('¿Marcar como resuelta y archivar?')) {
-                mockIncidencias[index].estado = 'resuelta';
-                closeModal();
-                renderApp();
-            }
+        function actualizarFiltros(campo, valor) {
+            filtros[campo] = valor;
+            renderIncidencias(document.getElementById('app-container'));
         }
 
         function closeModal() { document.getElementById('modal').classList.remove('active'); }
 
         function renderStatCard(title, value, color, icon) {
             const styles = { blue: 'bg-blue-50 text-blue-600', orange: 'bg-orange-50 text-orange-600', green: 'bg-green-50 text-green-600', red: 'bg-red-50 text-red-600' };
-            return `<div class="bg-white p-6 rounded-2xl border shadow-sm flex items-center justify-between"><div class="flex-1">
-                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${title}</p><p class="text-3xl font-bold mt-1">${value}</p>
-                    </div><div class="p-3 rounded-xl ${styles[color]}"><i data-lucide="${icon}"></i></div></div>`;
+            return `<div class="bg-white p-6 rounded-2xl border shadow-sm flex items-center justify-between"><div class="flex-1"><p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">${title}</p><p class="text-3xl font-bold mt-1">${value}</p></div><div class="p-3 rounded-xl ${styles[color]}"><i data-lucide="${icon}"></i></div></div>`;
         }
 
-        function renderBadge(estado) {
-            const config = { pendiente: { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'clock' }, en_proceso: { bg: 'bg-orange-100', text: 'text-orange-600', icon: 'alert-triangle' }, resuelta: { bg: 'bg-green-100', text: 'text-green-600', icon: 'check-circle-2' } };
-            const c = config[estado] || config.pendiente;
-            return `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${c.bg} ${c.text}"><i data-lucide="${c.icon}" class="w-3 h-3"></i> ${estado.replace('_', ' ')}</span>`;
-        }
-
-        function getPriorityColor(p) { return p === 'urgente' ? 'text-red-600' : p === 'alta' ? 'text-orange-600' : 'text-blue-600'; }
-
-        // --- SECCIONES SECUNDARIAS ---
-        function renderUsuarios(container) {
-            container.innerHTML = `<div class="fade-in space-y-6"><h1 class="text-3xl font-bold">Usuarios</h1><div class="bg-white rounded-2xl border shadow-sm"><table class="w-full text-left text-sm">${mockUsuarios.map(u => `<tr class="border-b hover:bg-gray-50 transition-all"><td class="p-4 flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">${u.nombre.substring(0,2)}</div><div><p class="font-bold">${u.nombre}</p><p class="text-xs text-gray-400">${u.email}</p></div></td><td class="p-4"><span class="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold uppercase">${u.rol}</span></td><td class="p-4 text-gray-500 text-xs text-right">${u.stats}</td></tr>`).join('')}</table></div></div>`;
-        }
+        function getPriorityColor(p) { return p === 'urgente' || p === 'alta' ? 'text-red-600' : 'text-blue-600'; }
 
         function renderSettings(container) {
-            container.innerHTML = `<div class="fade-in space-y-8 max-w-2xl"><h1 class="text-3xl font-bold">Configuración</h1><div class="bg-white p-8 rounded-2xl border space-y-6">${renderToggle("Notificaciones Push", "Recibir alertas en tiempo real")}${renderToggle("Seguridad Avanzada", "Activa el log de auditoría para gestores")}</div></div>`;
-        }
-
-        function renderToggle(label, desc) {
-            return `<div class="flex items-center justify-between"><div><p class="font-bold text-sm text-gray-700">${label}</p><p class="text-xs text-gray-400">${desc}</p></div><label class="relative inline-flex items-center cursor-pointer"><input type="checkbox" class="sr-only peer" checked><div class="w-11 h-6 bg-gray-200 rounded-full peer peer-checked:bg-blue-600 after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:after:translate-x-full"></div></label></div>`;
+            container.innerHTML = `<div class="fade-in space-y-8 max-w-2xl"><h1 class="text-3xl font-bold">Configuración</h1><div class="bg-white p-8 rounded-2xl border space-y-6">Panel de configuración v3.0</div></div>`;
         }
 
         function initDashboardCharts() {
-            new Chart(document.getElementById('chartEvolucion'), { type: 'line', data: { labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'], datasets: [{ label: 'Reportes', data: [12, 19, 15, 8, 22, 5, 10], borderColor: '#3b82f6', tension: 0.4, fill: true, backgroundColor: '#3b82f611' }] }, options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } } });
+            const ctx = document.getElementById('chartEvolucion');
+            if(ctx) {
+                new Chart(ctx, { type: 'line', data: { labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'], datasets: [{ label: 'Reportes', data: [12, 19, 15, 8, 22, 5, 10], borderColor: '#3b82f6', tension: 0.4 }] }, options: { plugins: { legend: { display: false } } } });
+            }
         }
 
         window.onload = () => switchTab('dashboard');
