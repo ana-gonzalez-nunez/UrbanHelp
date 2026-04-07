@@ -1,4 +1,4 @@
-package main.java.com.urbanhelp.urbanhelp.repository;
+package com.urbanhelp.urbanhelp.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import main.java.com.urbanhelp.urbanhelp.model.usu;

@@ -1,4 +1,4 @@
-package main.java.com.urbanhelp.urbanhelp.controller;
+package com.urbanhelp.urbanhelp.controller;
 
 @RestController
 @RequestMapping("/api/users")

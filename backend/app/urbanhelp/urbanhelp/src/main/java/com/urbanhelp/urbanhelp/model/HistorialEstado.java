@@ -1,4 +1,4 @@
-package main.java.com.urbanhelp.urbanhelp.model;
+package com.urbanhelp.urbanhelp.model;
 
 import java.util.Date;
 
@@ -16,7 +16,6 @@ public class HistorialEstado {
     public HistorialEstado(int idHistorial, int idIncidencia, String estadoAnterior, String estadoNuevo,
             Date fechaCambio, String comentario) {
         this.idHistorial = idHistorial;
-        this.idIncidencia = idIncidencia;
         this.estadoAnterior = estadoAnterior;
         this.estadoNuevo = estadoNuevo;
         this.fechaCambio = fechaCambio;
@@ -31,13 +30,6 @@ public class HistorialEstado {
         this.idHistorial = idHistorial;
     }
 
-    public int getIdIncidencia() {
-        return idIncidencia;
-    }
-
-    public void setIdIncidencia(int idIncidencia) {
-        this.idIncidencia = idIncidencia;
-    }
 
     public String getEstadoAnterior() {
         return estadoAnterior;

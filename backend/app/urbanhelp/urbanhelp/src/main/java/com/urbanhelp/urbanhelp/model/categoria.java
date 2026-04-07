@@ -1,6 +1,5 @@
-package main.java.com.urbanhelp.urbanhelp.model;
+package com.urbanhelp.urbanhelp.model;
 
-import java.util.Date;
 
 public class categoria {
 

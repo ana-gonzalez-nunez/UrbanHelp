@@ -1,4 +1,4 @@
-package main.java.com.urbanhelp.urbanhelp.model;
+package com.urbanhelp.urbanhelp.model;
 
 import java.util.Date;
 
@@ -35,13 +35,12 @@ public class imagen {
     public void setUrl(String url) {
         this.url = url;
     }
+    public Date getFechaSubida() {
+        return fechaSubida;
+    }   
 
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public void setDescripcion(String descripcion) {
-        this.descripcion = descripcion;
+    public void setFechaSubida(Date fechaSubida) {
+        this.fechaSubida = fechaSubida;
     }
     
     public int getIdIncidencia() {
