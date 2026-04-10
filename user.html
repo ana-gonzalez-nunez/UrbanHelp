@@ -1,90 +1,50 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Dashboard Usuario - Mis Incidencias</title>
-	<script src="https://cdn.tailwindcss.com"></script>
-	<script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
-	<script>if (!window.lucide || typeof window.lucide.createIcons !== 'function') window.lucide = { createIcons: function() {} };</script>
-	<style>
-		@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-		body { font-family: 'Inter', sans-serif; }
-	</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Usuario - Mis Incidencias</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
+    
+    <link rel="stylesheet" href="./css/style_user.css">
 </head>
 <body class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/40 to-indigo-50/50">
-	<div class="bg-white/90 backdrop-blur border-b border-slate-200/70 shadow-sm">
-		<div class="max-w-6xl mx-auto px-4 py-8">
-			<div class="flex items-start justify-between gap-4">
-				<div>
-					<h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900">Mis Incidencias</h1>
-					<p class="text-slate-600 mt-2">Gestiona y consulta tus reportes ciudadanos</p>
-				</div>
-				<a href="user-perfil.html" class="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors" title="Ir a mi perfil" aria-label="Ir a mi perfil">
-					<i data-lucide="user-circle-2" class="w-5 h-5"></i>
-				</a>
-			</div>
-		</div>
-	</div>
+    <div class="bg-white/90 backdrop-blur border-b border-slate-200/70 shadow-sm">
+        <div class="max-w-6xl mx-auto px-4 py-8">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900">Mis Incidencias</h1>
+                    <p class="text-slate-600 mt-2">Gestiona y consulta tus reportes ciudadanos</p>
+                </div>
+                <a href="user-perfil.html" class="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors" title="Ir a mi perfil" aria-label="Ir a mi perfil">
+                    <i data-lucide="user-circle-2" class="w-5 h-5"></i>
+                </a>
+            </div>
+        </div>
+    </div>
 
-	<div class="max-w-6xl mx-auto px-4 py-8">
-		<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8" id="statsCards"></div>
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8" id="statsCards"></div>
 
-		<div class="flex flex-col sm:flex-row gap-4 mb-8">
-			<a href="user-nueva-incidencia.html" class="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl transition-all font-semibold shadow-sm hover:bg-blue-700 hover:shadow-md">
-				<i data-lucide="plus" class="w-5 h-5"></i>
-				Registrar nueva incidencia
-			</a>
-			<a href="user-incidencias.html" class="inline-flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-300 px-6 py-3 rounded-xl transition-all font-semibold shadow-sm hover:bg-slate-50 hover:shadow-md">
-				<i data-lucide="list" class="w-5 h-5"></i>
-				Ver todas mis incidencias
-			</a>
-		</div>
+        <div class="flex flex-col sm:flex-row gap-4 mb-8">
+            <a href="user-nueva-incidencia.html" class="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-xl transition-all font-semibold shadow-sm hover:bg-blue-700 hover:shadow-md">
+                <i data-lucide="plus" class="w-5 h-5"></i>
+                Registrar nueva incidencia
+            </a>
+            <a href="user-incidencias.html" class="inline-flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-300 px-6 py-3 rounded-xl transition-all font-semibold shadow-sm hover:bg-slate-50 hover:shadow-md">
+                <i data-lucide="list" class="w-5 h-5"></i>
+                Ver todas mis incidencias
+            </a>
+        </div>
 
-		<div>
-			<h2 class="text-xl font-semibold text-slate-900 mb-4">Incidencias Recientes</h2>
-			<div class="space-y-4" id="recentIncidents"></div>
-		</div>
-	</div>
+        <div>
+            <h2 class="text-xl font-semibold text-slate-900 mb-4">Incidencias Recientes</h2>
+            <div class="space-y-4" id="recentIncidents"></div>
+        </div>
+    </div>
 
-	<script src="user-data.js"></script>
-	<script>
-		function statCard(title, value, valueColor, iconName, iconWrapClass, iconClass) {
-			return `
-				<div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all duration-200">
-					<div class="flex items-center justify-between">
-						<div>
-							<p class="text-sm text-slate-500 mb-1 uppercase tracking-wide">${title}</p>
-							<p class="text-3xl font-extrabold ${valueColor}">${value}</p>
-						</div>
-						<div class="${iconWrapClass} p-3 rounded-xl">
-							<i data-lucide="${iconName}" class="w-6 h-6 ${iconClass}"></i>
-						</div>
-					</div>
-				</div>
-			`;
-		}
-
-		function render() {
-			const pendingCount = mockIncidents.filter(i => i.status === 'pendiente').length;
-			const inProgressCount = mockIncidents.filter(i => i.status === 'en-proceso').length;
-			const resolvedCount = mockIncidents.filter(i => i.status === 'resuelta').length;
-
-			document.getElementById('statsCards').innerHTML = [
-				statCard('Pendientes', pendingCount, 'text-yellow-600', 'alert-circle', 'bg-yellow-100', 'text-yellow-600'),
-				statCard('En Proceso', inProgressCount, 'text-blue-600', 'clock', 'bg-blue-100', 'text-blue-600'),
-				statCard('Resueltas', resolvedCount, 'text-green-600', 'check-circle-2', 'bg-green-100', 'text-green-600')
-			].join('');
-
-			const recentIncidents = [...mockIncidents]
-				.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-				.slice(0, 3);
-			document.getElementById('recentIncidents').innerHTML = recentIncidents.map(renderIncidentCard).join('');
-
-			lucide.createIcons();
-		}
-
-		render();
-	</script>
+    <script src="./js/user-data.js"></script>
+    <script src="./js/script-user.js"></script>
 </body>
 </html>
