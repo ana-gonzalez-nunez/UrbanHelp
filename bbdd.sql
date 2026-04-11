@@ -53,23 +53,21 @@ CREATE TABLE Usuario (
     IdRol INT NOT NULL, 
     IdServicio INT NULL,
 
-    CONSTRAINT FK_Usuario_Servicio
-        FOREIGN KEY (IdServicio) REFERENCES Servicio(IdServicio)
-    CONSTRAINT FK_Usuario_Rol
-        FOREIGN KEY (IdRol) REFERENCES Rol(IdRol)
+    CONSTRAINT FK_Usuario_Servicio FOREIGN KEY (IdServicio) REFERENCES Servicio(IdServicio),
+    CONSTRAINT FK_Usuario_Rol FOREIGN KEY (IdRol) REFERENCES Rol(IdRol)
 );
 
 
 
-INSERT INTO Usuario (IdUsuario, Nombre, Apellido1, Apellido2, Email, Contrasena, Telefono, FechaRegistro, EstadoCuenta, rol, IdServicio)
+INSERT INTO Usuario (IdUsuario, Nombre, Apellido1, Apellido2, Email, Contrasena, Telefono, FechaRegistro, EstadoCuenta, IdRol, IdServicio)
 VALUES
-(1, 'Carlos', 'Martínez', 'López', 'carlos.martinez@email.com', '1234', '600111111', '2024-03-15', 1, 'Ciudadano', NULL),
-(2, 'Lucía', 'Fernández', 'Ruiz', 'lucia.fernandez@email.com', '1234', '600222222', '2024-05-20', 1, 'Ciudadano', NULL),
-(3, 'Miguel', 'García', 'Santos', 'miguel.garcia@email.com', '1234', '600333333', '2024-09-01', 1, 'Tecnico', 1),
-(4, 'Ana', 'Torres', 'Vega', 'ana.torres@email.com', '1234', '600444444', '2025-01-10', 1, 'Tecnico', 2),
-(5, 'Pedro', 'López', 'Jiménez', 'pedro.lopez@email.com', '1234', '600555555', '2025-06-18', 1, 'Ciudadano', NULL),
-(6, 'Elena', 'Sánchez', 'Morales', 'elena.sanchez@email.com', '1234', '600666666', '2025-09-22', 1, 'Tecnico', 3),
-(7, 'Javier', 'Romero', 'Castro', 'javier.romero@email.com', '1234', '600777777', '2026-01-05', 1, 'Administrador', NULL);
+(1, 'Carlos', 'Martínez', 'López', 'carlos.martinez@email.com', '1234', '600111111', '2024-03-15', 1, 1, NULL),
+(2, 'Lucía', 'Fernández', 'Ruiz', 'lucia.fernandez@email.com', '1234', '600222222', '2024-05-20', 1, 1, NULL),
+(3, 'Miguel', 'García', 'Santos', 'miguel.garcia@email.com', '1234', '600333333', '2024-09-01', 1, 2, 1),
+(4, 'Ana', 'Torres', 'Vega', 'ana.torres@email.com', '1234', '600444444', '2025-01-10', 1, 2, 2),
+(5, 'Pedro', 'López', 'Jiménez', 'pedro.lopez@email.com', '1234', '600555555', '2025-06-18', 1, 1, NULL),
+(6, 'Elena', 'Sánchez', 'Morales', 'elena.sanchez@email.com', '1234', '600666666', '2025-09-22', 1, 2, 3),
+(7, 'Javier', 'Romero', 'Castro', 'javier.romero@email.com', '1234', '600777777', '2026-01-05', 1, 4, NULL);
 
 
 -- CATEGORIA --
