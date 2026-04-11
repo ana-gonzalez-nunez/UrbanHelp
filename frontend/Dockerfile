@@ -3,7 +3,7 @@ FROM nginx:1.27-alpine
 COPY frontend/nginx.conf /etc/nginx/conf.d/default.conf
 
 COPY login.html /usr/share/nginx/html/
-COPY regristo.html /usr/share/nginx/html/
+COPY registro.html /usr/share/nginx/html/
 COPY admin.html /usr/share/nginx/html/
 COPY incidencia-detalle.html /usr/share/nginx/html/
 COPY tecnico.html /usr/share/nginx/html/
