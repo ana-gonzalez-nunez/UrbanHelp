@@ -353,7 +353,15 @@ function renderIncidentCard(incident) {
 
 const INCIDENTS_STORAGE_KEY = 'urbanIncidents';
 const TECHNICIAN_REQUESTS_STORAGE_KEY = 'urbanTechnicianRequests';
+const APP_USERS_STORAGE_KEY = 'urbanAppUsers';
 const DEFAULT_APPROVED_TECHNICIANS = ['tecnico@urbanhelp.es'];
+
+const defaultAppUsers = [
+  { id: 'USR001', nombre: 'María García López', email: 'maria.garcia@email.com', rol: 'ciudadano', stats: '5 reportadas' },
+  { id: 'TEC001', nombre: 'Carlos Rodríguez', email: 'carlos.r@municipio.es', rol: 'tecnico', stats: '45 resueltas' },
+  { id: 'TEC002', nombre: 'Ana Fernández', email: 'ana.f@municipio.es', rol: 'tecnico', stats: '38 resueltas' },
+  { id: 'GEST001', nombre: 'Admin Sistema', email: 'admin@municipio.es', rol: 'gestor', stats: '-' }
+];
 
 function loadStoredIncidents() {
   try {
@@ -440,6 +448,57 @@ function resolveTechnicianRequest(requestId, action) {
   return requests[index];
 }
 
+function loadAppUsers() {
+  try {
+    const stored = localStorage.getItem(APP_USERS_STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveAppUsers(users) {
+  try {
+    localStorage.setItem(APP_USERS_STORAGE_KEY, JSON.stringify(users));
+  } catch {
+    // localStorage not available; ignore
+  }
+}
+
+function getAppUsers() {
+  const users = loadAppUsers();
+  if (users.length > 0) return users;
+  return defaultAppUsers.map((u) => ({ ...u }));
+}
+
+function upsertAppUser(user) {
+  const users = getAppUsers();
+  const email = normalizeEmail(user && user.email);
+  const index = users.findIndex((item) => normalizeEmail(item.email) === email);
+
+  if (index >= 0) {
+    users[index] = {
+      ...users[index],
+      ...user,
+      email: users[index].email || user.email
+    };
+  } else {
+    users.unshift({
+      id: user.id || `USR${Date.now().toString().slice(-6)}`,
+      nombre: user.nombre || 'Usuario',
+      email: user.email || '',
+      rol: user.rol || 'ciudadano',
+      stats: user.stats || '-',
+      createdAt: user.createdAt || new Date().toISOString()
+    });
+  }
+
+  saveAppUsers(users);
+  return users;
+}
+
 function normalizeEmail(email) {
   return (email || '').toString().trim().toLowerCase();
 }
@@ -494,6 +553,9 @@ window.addTechnicianRequest = addTechnicianRequest;
 window.resolveTechnicianRequest = resolveTechnicianRequest;
 window.getTechnicianRequestStatus = getTechnicianRequestStatus;
 window.isTechnicianApproved = isTechnicianApproved;
+window.getAppUsers = getAppUsers;
+window.saveAppUsers = saveAppUsers;
+window.upsertAppUser = upsertAppUser;
 
 const defaultUserProfile = {
   id: 'USR001',

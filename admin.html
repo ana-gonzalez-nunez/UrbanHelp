@@ -72,13 +72,13 @@
         // Como tu user-data.js usa 'mockIncidents', lo usamos globalmente
         let incidenciasActuales = typeof getIncidents === 'function' ? getIncidents() : [];
         
-        // Simulación de lista de usuarios (basado en el perfil que mandaste y técnicos mencionados)
-        let listaUsuarios = [
-            { id: 'USR001', nombre: 'María García López', email: 'maria.garcia@email.com', rol: 'ciudadano', stats: '5 reportadas' },
-            { id: 'TEC001', nombre: 'Carlos Rodríguez', email: 'carlos.r@municipio.es', rol: 'tecnico', stats: '45 resueltas' },
-            { id: 'TEC002', nombre: 'Ana Fernández', email: 'ana.f@municipio.es', rol: 'tecnico', stats: '38 resueltas' },
-            { id: 'GEST001', nombre: 'Admin Sistema', email: 'admin@municipio.es', rol: 'gestor', stats: '-' }
-        ];
+        let listaUsuarios = typeof getAppUsers === 'function' ? getAppUsers() : [];
+
+        function refreshUsers() {
+            if (typeof getAppUsers === 'function') {
+                listaUsuarios = getAppUsers();
+            }
+        }
 
         let filtros = { texto: '', estado: 'todas', categoria: 'todas' };
         let currentTab = 'dashboard';
@@ -290,6 +290,19 @@
                     resolveTechnicianRequest(id, accion === 'aceptar' ? 'aceptada' : 'rechazada');
                 }
 
+                if (accion === 'aceptar' && typeof getTechnicianRequests === 'function' && typeof upsertAppUser === 'function') {
+                    const request = getTechnicianRequests().find((item) => item.id === id);
+                    if (request) {
+                        upsertAppUser({
+                            nombre: request.nombre,
+                            email: request.email,
+                            rol: 'tecnico',
+                            stats: '0 resueltas'
+                        });
+                        refreshUsers();
+                    }
+                }
+
                 alert(`Solicitud ${id} ha sido ${accion === 'aceptar' ? 'aprobada con éxito. El técnico ya puede acceder.' : 'rechazada.'}`);
                 switchTab('solicitudes'); 
             }
@@ -358,6 +371,7 @@
 
         // --- USUARIOS ---
         function renderUsuarios(container) {
+            refreshUsers();
             container.innerHTML = `
                 <div class="fade-in space-y-6">
                     <h1 class="text-3xl font-bold">Usuarios</h1>
@@ -421,6 +435,9 @@
             const nuevoRol = new FormData(event.target).get('rol');
             const idx = listaUsuarios.findIndex(u => u.id === userId);
             listaUsuarios[idx].rol = nuevoRol;
+            if (typeof saveAppUsers === 'function') {
+                saveAppUsers(listaUsuarios);
+            }
             alert('Rol actualizado localmente');
             switchTab('usuarios');
         }
