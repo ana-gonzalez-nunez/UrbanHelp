@@ -8,7 +8,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="user-data.js"></script>
+    <script src="./js/user-data.js"></script>
+    <script src="./js/logout-modal.js"></script>
+    <link rel="stylesheet" href="./css/style_app.css">
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -42,7 +44,7 @@
                         <p class="text-[10px] text-gray-500 truncate">admin@municipio.es</p>
                     </div>
                 </div>
-                <button class="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg text-sm transition-colors">
+                <button id="logoutBtn" class="w-full flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg text-sm transition-colors">
                     <i data-lucide="log-out" class="w-4 h-4"></i> Cerrar Sesión
                 </button>
             </div>
@@ -232,11 +234,8 @@
         }
 
         function renderSolicitudes(container) {
-            // Simulamos datos que vendrían de tu base de datos (Técnicos con estado pendiente)
-            const solicitudesPendientes = [
-                { id: 'SOL001', nombre: 'Juan Pérez', email: 'juan.p@tecnicos.es', fecha: '2023-10-25', especialidad: 'Fontanería' },
-                { id: 'SOL002', nombre: 'Roberto Gómez', email: 'roberto.g@tecnicos.es', fecha: '2023-10-26', especialidad: 'Electricidad' }
-            ];
+            const solicitudes = typeof getTechnicianRequests === 'function' ? getTechnicianRequests() : [];
+            const solicitudesPendientes = solicitudes.filter((s) => (s.status || 'pendiente') === 'pendiente');
 
             container.innerHTML = `
                 <div class="space-y-6 fade-in">
@@ -287,8 +286,11 @@
         function gestionarSolicitud(id, accion) {
             const confirmacion = confirm(`¿Estás seguro de que deseas ${accion} esta solicitud?`);
             if (confirmacion) {
+                if (typeof resolveTechnicianRequest === 'function') {
+                    resolveTechnicianRequest(id, accion === 'aceptar' ? 'aceptada' : 'rechazada');
+                }
+
                 alert(`Solicitud ${id} ha sido ${accion === 'aceptar' ? 'aprobada con éxito. El técnico ya puede acceder.' : 'rechazada.'}`);
-                // Aquí refrescarías la lista o harías el fetch a tu backend
                 switchTab('solicitudes'); 
             }
         }
@@ -505,6 +507,23 @@
             if(ctx) {
                 new Chart(ctx, { type: 'line', data: { labels: ['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'], datasets: [{ label: 'Reportes', data: [12, 19, 15, 8, 22, 5, 10], borderColor: '#3b82f6', tension: 0.4 }] }, options: { plugins: { legend: { display: false } } } });
             }
+        }
+
+        const logoutBtn = document.getElementById('logoutBtn');
+        if (logoutBtn) {
+            logoutBtn.addEventListener('click', async () => {
+                const confirmed = window.confirmLogoutModal
+                    ? await window.confirmLogoutModal({
+                        title: 'Cerrar sesion',
+                        message: '¿Deseas cerrar sesion ahora?',
+                        confirmText: 'Si, cerrar',
+                        cancelText: 'Cancelar'
+                    })
+                    : window.confirm('¿Deseas cerrar sesión?');
+                if (confirmed) {
+                    window.location.href = 'login.html';
+                }
+            });
         }
 
         window.onload = () => switchTab('dashboard');

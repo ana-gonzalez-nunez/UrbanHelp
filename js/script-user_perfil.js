@@ -130,18 +130,28 @@ function init() {
 // Dentro de tu función init o al final del script
 const logoutBtn = document.getElementById('logoutBtn');
 if (logoutBtn) {
-    logoutBtn.addEventListener('click', () => {
-        // Borramos los datos de sesión si fuera necesario
-        // localStorage.removeItem('userProfile'); 
-        
-        // Efecto de salida simple
-        document.body.style.opacity = '0';
-        document.body.style.transition = 'opacity 0.5s';
-        
-        setTimeout(() => {
-            window.location.href = 'login.html'; 
-        }, 500);
-    });
+  logoutBtn.addEventListener('click', async () => {
+    const confirmed = window.confirmLogoutModal
+      ? await window.confirmLogoutModal({
+        title: 'Cerrar sesion',
+        message: '¿Deseas cerrar sesion ahora?',
+        confirmText: 'Si, cerrar',
+        cancelText: 'Cancelar'
+      })
+      : window.confirm('¿Deseas cerrar sesión?');
+    if (!confirmed) return;
+
+    // Borramos los datos de sesión si fuera necesario
+    // localStorage.removeItem('userProfile'); 
+
+    // Efecto de salida simple
+    document.body.style.opacity = '0';
+    document.body.style.transition = 'opacity 0.5s';
+
+    setTimeout(() => {
+      window.location.href = 'login.html'; 
+    }, 500);
+  });
 }
 
 // Inicializar cuando el DOM esté listo

@@ -90,17 +90,76 @@ function renderIncidentDetail(incident) {
   `;
 }
 
+async function resolveIncidentCoordinates(incident) {
+  if (incident && incident.geo) {
+    const lat = Number(incident.geo.lat);
+    const lng = Number(incident.geo.lng);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng };
+    }
+  }
+
+  if (!incident || !incident.location) return null;
+
+  try {
+    const query = encodeURIComponent(`${incident.location}, Espana`);
+    const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`);
+    if (!response.ok) return null;
+
+    const results = await response.json();
+    if (!Array.isArray(results) || results.length === 0) return null;
+
+    const lat = Number(results[0].lat);
+    const lng = Number(results[0].lon);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+    return { lat, lng };
+  } catch {
+    return null;
+  }
+}
+
+function getExternalMapUrl(incident) {
+  if (window.getIncidentMapUrl) {
+    return window.getIncidentMapUrl(incident);
+  }
+
+  const location = incident && incident.location ? incident.location : '';
+  return `https://www.google.com/maps?q=${encodeURIComponent(location)}`;
+}
+
 /**
  * LÓGICA DE MAPA E INICIALIZACIÓN
  */
-function initMapView(incident) {
+async function initMapView(incident) {
   const el = document.getElementById('incidentMapView');
-  if (!el || typeof L === 'undefined' || !incident.geo) return;
+  if (!el || typeof L === 'undefined') return;
+
+  const coords = await resolveIncidentCoordinates(incident);
+  if (!coords) {
+    const mapUrl = getExternalMapUrl(incident);
+    el.innerHTML = `
+      <div class="p-4 text-sm text-slate-600 space-y-3">
+        <p>No se pudo localizar esta direccion en el mapa.</p>
+        <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
+          Ver en Google Maps
+        </a>
+      </div>
+    `;
+    return;
+  }
+
+  if (el._leaflet_id) {
+    el._leaflet_id = null;
+    el.innerHTML = '';
+  }
 
   const map = L.map('incidentMapView', { zoomControl: true, scrollWheelZoom: false })
-               .setView([incident.geo.lat, incident.geo.lng], 16);
+               .setView([coords.lat, coords.lng], 16);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-  L.marker([incident.geo.lat, incident.geo.lng]).addTo(map).bindPopup(incident.location).openPopup();
+  L.marker([coords.lat, coords.lng]).addTo(map).bindPopup(incident.location).openPopup();
+
+  window.setTimeout(() => map.invalidateSize(), 120);
 }
 
 function render() {

@@ -92,7 +92,7 @@ function initMapPicker() {
 
   mapInstance.on('click', (e) => {
     const { lat, lng } = e.latlng;
-    selectedCoords = { lat: lat.toFixed(6), lng: lng.toFixed(6) };
+    selectedCoords = { lat: Number(lat.toFixed(6)), lng: Number(lng.toFixed(6)) };
     if (marker) marker.setLatLng(e.latlng);
     else marker = L.marker(e.latlng).addTo(mapInstance);
     document.getElementById('selectedPoint').textContent = `Coordenadas: ${selectedCoords.lat}, ${selectedCoords.lng}`;

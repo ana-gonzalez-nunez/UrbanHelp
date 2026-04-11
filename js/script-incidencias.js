@@ -111,9 +111,18 @@ window.setFilter = function(filter) {
 function setupLogout() {
   const btn = document.getElementById('logoutBtn');
   if (btn) {
-    btn.addEventListener('click', () => {
-      if (confirm("¿Estás seguro de que deseas salir?")) {
-        window.location.href = 'index.html';
+    btn.addEventListener('click', async () => {
+      const confirmed = window.confirmLogoutModal
+        ? await window.confirmLogoutModal({
+            title: 'Cerrar sesion',
+            message: '¿Deseas cerrar sesion ahora?',
+            confirmText: 'Si, cerrar',
+            cancelText: 'Cancelar'
+          })
+        : confirm("¿Deseas cerrar sesión?");
+
+      if (confirmed) {
+        window.location.href = 'login.html';
       }
     });
   }

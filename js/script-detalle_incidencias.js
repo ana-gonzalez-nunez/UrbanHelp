@@ -61,15 +61,67 @@ function renderIncidentDetail(incident) {
     `;
 }
 
+async function resolveIncidentCoordinates(incident) {
+    if (incident && incident.geo) {
+        const lat = Number(incident.geo.lat);
+        const lng = Number(incident.geo.lng);
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            return { lat, lng };
+        }
+    }
+
+    if (!incident || !incident.location) return null;
+
+    try {
+        const query = encodeURIComponent(`${incident.location}, Espana`);
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`);
+        if (!response.ok) return null;
+
+        const results = await response.json();
+        if (!Array.isArray(results) || results.length === 0) return null;
+
+        const lat = Number(results[0].lat);
+        const lng = Number(results[0].lon);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+
+        return { lat, lng };
+    } catch {
+        return null;
+    }
+}
+
+function getExternalMapUrl(incident) {
+    if (window.getIncidentMapUrl) {
+        return window.getIncidentMapUrl(incident);
+    }
+
+    const location = incident && incident.location ? incident.location : '';
+    return `https://www.google.com/maps?q=${encodeURIComponent(location)}`;
+}
+
 /**
  * INICIALIZACIÓN DEL MAPA
  */
-function initMapView(incident) {
+async function initMapView(incident) {
     const mapContainer = document.getElementById('incidentMapDetail');
 
     // Verificaciones de seguridad
-    if (!mapContainer || typeof L === 'undefined' || !incident.geo) {
+    if (!mapContainer || typeof L === 'undefined') {
         console.error("Error: No se pudo inicializar el mapa. Verifica Leaflet o las coordenadas.");
+        return;
+    }
+
+    const coords = await resolveIncidentCoordinates(incident);
+    if (!coords) {
+        const mapUrl = getExternalMapUrl(incident);
+        mapContainer.innerHTML = `
+            <div class="p-4 text-sm text-slate-600 space-y-3">
+                <p>No se pudo localizar esta direccion en el mapa.</p>
+                <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
+                    Ver en Google Maps
+                </a>
+            </div>
+        `;
         return;
     }
 
@@ -80,7 +132,7 @@ function initMapView(incident) {
     }
 
     // 1. Crear instancia del mapa usando las coordenadas del objeto incident
-    const map = L.map('incidentMapDetail').setView([incident.geo.lat, incident.geo.lng], 16);
+    const map = L.map('incidentMapDetail').setView([coords.lat, coords.lng], 16);
 
     // 2. Añadir capa de OpenStreetMap
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -88,7 +140,7 @@ function initMapView(incident) {
     }).addTo(map);
 
     // 3. Añadir el marcador
-    L.marker([incident.geo.lat, incident.geo.lng])
+    L.marker([coords.lat, coords.lng])
         .addTo(map)
         .bindPopup(`<b>${incident.location}</b>`)
         .openPopup();
@@ -164,8 +216,17 @@ function render() {
     // Configurar cierre de sesión si tienes el botón en la navbar
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
-        logoutBtn.addEventListener('click', () => {
-            if(confirm("¿Cerrar sesión?")) window.location.href = 'index.html';
+        logoutBtn.addEventListener('click', async () => {
+            const confirmed = window.confirmLogoutModal
+                ? await window.confirmLogoutModal({
+                    title: 'Cerrar sesion',
+                    message: '¿Deseas cerrar sesion ahora?',
+                    confirmText: 'Si, cerrar',
+                    cancelText: 'Cancelar'
+                })
+                : confirm("¿Deseas cerrar sesión?");
+
+            if (confirmed) window.location.href = 'login.html';
         });
     }
 }

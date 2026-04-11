@@ -1,164 +1,255 @@
-/* Estilos Globales */
 * {
     box-sizing: border-box;
     margin: 0;
     padding: 0;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 
-body, html {
-    height: 100%;
-    width: 100%;
-}
-
-/* 1. Fondo de la Página con el Gradiente solicitado */
+html,
 body {
-    background: linear-gradient(135deg, #829845 0%, #588ba9 100%);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    min-height: 100%;
 }
 
-/* 2. Tarjeta Principal */
-.login-card {
-    background-color: white;
-    width: 95%;
-    max-width: 950px;
-    min-height: 550px;
-    border-radius: 25px;
+body {
+    font-family: 'Public Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background:
+        radial-gradient(circle at 10% 16%, rgba(109, 173, 104, 0.32), transparent 32%),
+        radial-gradient(circle at 86% 7%, rgba(71, 136, 198, 0.34), transparent 38%),
+        linear-gradient(140deg, #ecf4ea 0%, #e5edf7 52%, #f3e7d5 100%);
+    color: #10253a;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 28px;
+}
+
+.register-card {
+    width: 100%;
+    max-width: 1160px;
+    min-height: 720px;
+    border-radius: 28px;
     overflow: hidden;
-    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+    display: grid;
+    grid-template-columns: 1.02fr 0.98fr;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(16, 37, 58, 0.1);
+    box-shadow: 0 28px 62px rgba(16, 37, 58, 0.2);
 }
 
-/* 3. Sección Izquierda */
-.login-decoration {
-    flex: 1;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding: 40px;
-    background-color: #ffffff;
-}
-
-.circles-background {
-    width: 300px;
-    height: 300px;
-    background-color: #f1f3f6;
-    border-radius: 50%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: hidden;
-}
-
-.laptop-icon {
-    width: 80%;
-    height: auto;
-    object-fit: contain;
-}
-
-/* 4. Sección Derecha (Formulario) */
-.login-form-container {
-    flex: 1;
+.register-decoration {
+    position: relative;
+    padding: 52px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    padding: 40px 60px;
-    text-align: center;
+    gap: 28px;
+    color: #fff;
+    background: linear-gradient(165deg, #145892 0%, #1f6fb2 54%, #2a8f7a 100%);
 }
 
-.login-form-container h2 {
-    font-size: 28px;
-    color: #222;
-    margin-bottom: 30px;
-    font-weight: 700;
-}
-
-/* 5. Inputs y Grupos */
-.input-group {
-    position: relative;
-    margin-bottom: 15px;
-}
-
-.input-group i {
+.register-decoration::before,
+.register-decoration::after {
+    content: "";
     position: absolute;
-    left: 20px;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #595959;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.register-decoration::before {
+    width: 190px;
+    height: 190px;
+    right: -34px;
+    top: -52px;
+}
+
+.register-decoration::after {
+    width: 140px;
+    height: 140px;
+    bottom: 36px;
+    left: -40px;
+}
+
+.brand-bubble {
+    position: relative;
     z-index: 1;
+    width: min(100%, 320px);
+    margin: 0 auto;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.16);
+    border: 1px solid rgba(255, 255, 255, 0.26);
+    box-shadow: inset 0 0 0 12px rgba(255, 255, 255, 0.1);
 }
 
-.input-group input {
-    width: 100%;
-    padding: 15px 20px 15px 55px;
-    background-color: #f1f3f6;
-    border: none;
-    border-radius: 35px;
-    font-size: 15px;
-    color: #222;
-    transition: all 0.3s ease;
+.brand-bubble img {
+    width: 86%;
+    border-radius: 20px;
 }
 
-.input-group input:focus {
-    outline: none;
-    background-color: #e8eaf0;
-    box-shadow: 0 0 10px rgba(121, 195, 79, 0.2);
+.register-decoration h1 {
+    position: relative;
+    z-index: 1;
+    font-family: 'Sora', 'Public Sans', sans-serif;
+    font-size: clamp(2rem, 3.6vw, 3.1rem);
+    line-height: 1.1;
 }
 
-/* Fila para Apellidos */
-.row {
+.register-decoration p {
+    position: relative;
+    z-index: 1;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.7;
+}
+
+.benefits {
+    position: relative;
+    z-index: 1;
+    list-style: none;
+    display: grid;
+    gap: 12px;
+    color: rgba(255, 255, 255, 0.97);
+    font-weight: 600;
+}
+
+.benefits li {
     display: flex;
     gap: 10px;
-}
-.row .input-group {
-    flex: 1;
+    align-items: center;
 }
 
-/* 6. Botón de Registro (Verde Lima) */
-.login-button {
+.register-panel {
+    padding: 48px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(246, 250, 254, 0.93));
+}
+
+.register-panel h2 {
+    font-family: 'Sora', 'Public Sans', sans-serif;
+    font-size: 2rem;
+    margin-bottom: 8px;
+}
+
+.register-panel .subtitle {
+    color: #4f6173;
+    margin-bottom: 20px;
+    line-height: 1.7;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.field {
+    position: relative;
+    margin-bottom: 12px;
+}
+
+.field.wide {
+    grid-column: 1 / -1;
+}
+
+.field i {
+    position: absolute;
+    top: 50%;
+    left: 15px;
+    transform: translateY(-50%);
+    color: #5c7083;
+}
+
+.field input,
+.field select {
     width: 100%;
-    padding: 16px;
-    background-color: #79C34F;
-    border: none;
-    border-radius: 35px;
-    color: #1A1A1A;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    margin-top: 15px;
-    transition: background 0.3s ease, transform 0.2s ease;
+    border: 1px solid #cfdeec;
+    border-radius: 16px;
+    padding: 14px 16px 14px 44px;
+    background: #f8fbff;
+    color: #10253a;
+    font-size: 0.97rem;
 }
 
-.login-button:hover {
-    background-color: #69ae42;
-    transform: translateY(-2px);
+.field select {
+    appearance: none;
 }
 
-/* 7. Enlace inferior */
-.create-account {
-    display: block;
-    text-align: center;
-    font-size: 14px;
-    color: #555;
-    text-decoration: none;
-    margin-top: 30px;
+.field input:focus,
+.field select:focus {
+    outline: none;
+    border-color: #5ca5e4;
+    box-shadow: 0 0 0 3px rgba(31, 111, 178, 0.17);
+}
+
+.notice {
+    display: none;
+    margin-bottom: 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid #c7ead2;
+    background: #ecfbf1;
+    color: #186738;
+    font-size: 0.92rem;
     font-weight: 600;
+}
+
+.notice.is-visible {
+    display: block;
+}
+
+.register-button {
+    width: 100%;
+    margin-top: 8px;
+    border: 0;
+    border-radius: 16px;
+    padding: 14px;
+    font-weight: 800;
+    color: #fff;
+    background: linear-gradient(120deg, #1f6fb2 0%, #2a8f7a 100%);
+    cursor: pointer;
+}
+
+.register-button:hover {
+    filter: brightness(1.05);
+}
+
+.create-account {
+    display: inline-block;
+    margin-top: 16px;
+    color: #1f6fb2;
+    font-weight: 700;
+    text-decoration: none;
 }
 
 .create-account:hover {
     text-decoration: underline;
-    color: #222;
 }
 
-/* Responsive básico para móviles */
-@media (max-width: 768px) {
-    .login-card {
-        flex-direction: column;
-        width: 90%;
+@media (max-width: 980px) {
+    .register-card {
+        grid-template-columns: 1fr;
+        min-height: auto;
     }
-    .login-decoration {
-        display: none; /* Ocultamos la parte del logo en móviles para ahorrar espacio */
+
+    .register-decoration {
+        padding: 34px 28px;
+    }
+
+    .register-panel {
+        padding: 34px 24px;
+    }
+}
+
+@media (max-width: 640px) {
+    body {
+        padding: 14px;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
     }
 }

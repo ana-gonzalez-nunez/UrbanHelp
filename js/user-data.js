@@ -352,6 +352,8 @@ function renderIncidentCard(incident) {
 }
 
 const INCIDENTS_STORAGE_KEY = 'urbanIncidents';
+const TECHNICIAN_REQUESTS_STORAGE_KEY = 'urbanTechnicianRequests';
+const DEFAULT_APPROVED_TECHNICIANS = ['tecnico@urbanhelp.es'];
 
 function loadStoredIncidents() {
   try {
@@ -388,6 +390,84 @@ function addIncident(incident) {
   return incident;
 }
 
+function loadTechnicianRequests() {
+  try {
+    const stored = localStorage.getItem(TECHNICIAN_REQUESTS_STORAGE_KEY);
+    if (!stored) return [];
+    const parsed = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTechnicianRequests(requests) {
+  try {
+    localStorage.setItem(TECHNICIAN_REQUESTS_STORAGE_KEY, JSON.stringify(requests));
+  } catch {
+    // localStorage not available; ignore
+  }
+}
+
+function getTechnicianRequests() {
+  return loadTechnicianRequests();
+}
+
+function addTechnicianRequest(request) {
+  const normalizedEmail = normalizeEmail(request && request.email);
+  const requests = getTechnicianRequests().filter(
+    (item) => normalizeEmail(item.email) !== normalizedEmail
+  );
+
+  requests.unshift(request);
+  saveTechnicianRequests(requests);
+  return request;
+}
+
+function resolveTechnicianRequest(requestId, action) {
+  const requests = getTechnicianRequests();
+  const index = requests.findIndex((item) => item.id === requestId);
+  if (index === -1) return null;
+
+  const now = new Date().toISOString();
+  requests[index] = {
+    ...requests[index],
+    status: action,
+    reviewedAt: now
+  };
+
+  saveTechnicianRequests(requests);
+  return requests[index];
+}
+
+function normalizeEmail(email) {
+  return (email || '').toString().trim().toLowerCase();
+}
+
+function getTechnicianRequestByEmail(email) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return null;
+
+  const requests = getTechnicianRequests();
+  return requests.find((item) => normalizeEmail(item.email) === normalizedEmail) || null;
+}
+
+function getTechnicianRequestStatus(email) {
+  const request = getTechnicianRequestByEmail(email);
+  return request ? (request.status || 'pendiente') : null;
+}
+
+function isTechnicianApproved(email) {
+  const normalizedEmail = normalizeEmail(email);
+  if (!normalizedEmail) return false;
+
+  if (DEFAULT_APPROVED_TECHNICIANS.includes(normalizedEmail)) {
+    return true;
+  }
+
+  return getTechnicianRequestStatus(normalizedEmail) === 'aceptada';
+}
+
 function getIncidentMapUrl(incident) {
   if (incident && incident.geo && typeof incident.geo.lat === 'number' && typeof incident.geo.lng === 'number') {
     return `https://www.google.com/maps?q=${incident.geo.lat},${incident.geo.lng}`;
@@ -409,6 +489,11 @@ window.getIncidents = getIncidents;
 window.saveIncidents = saveIncidents;
 window.addIncident = addIncident;
 window.getIncidentMapUrl = getIncidentMapUrl;
+window.getTechnicianRequests = getTechnicianRequests;
+window.addTechnicianRequest = addTechnicianRequest;
+window.resolveTechnicianRequest = resolveTechnicianRequest;
+window.getTechnicianRequestStatus = getTechnicianRequestStatus;
+window.isTechnicianApproved = isTechnicianApproved;
 
 const defaultUserProfile = {
   id: 'USR001',
