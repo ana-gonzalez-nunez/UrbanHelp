@@ -131,7 +131,11 @@ function setupLogout() {
 /**
  * INICIALIZACIÓN
  */
-function render() {
+async function render() {
+  if (window.loadIncidentsFromApi) {
+    await window.loadIncidentsFromApi();
+  }
+
   document.getElementById('app').innerHTML = renderPageContent();
   renderList();
   setupLogout();

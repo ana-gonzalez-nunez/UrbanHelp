@@ -8,14 +8,192 @@
     <script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <link rel="stylesheet" href="./css/style_app.css">
-    <link rel="stylesheet" href="./css/style_tecnico.css">
+    <link rel="stylesheet" href="./css/style_app.css?v=20260412a">
+    <link rel="stylesheet" href="./css/style_tecnico.css?v=20260412a">
+
+    <style>
+        .status-modal-card {
+            width: min(100%, 420px);
+        }
+
+        .status-modal-header {
+            background: linear-gradient(120deg, #123a62 0%, #1d6fb8 55%, #0f8cb8 100%);
+            color: #fff;
+            border-radius: 16px 16px 0 0;
+        }
+
+        .status-modal-header-top {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 18px;
+        }
+
+        .status-modal-eyebrow {
+            margin: 0;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.24em;
+            opacity: 0.72;
+            font-weight: 800;
+        }
+
+        .status-modal-title {
+            margin: 4px 0 0;
+            font-size: 1.1rem;
+            line-height: 1.2;
+            font-weight: 900;
+        }
+
+        .status-modal-subtitle {
+            margin: 4px 0 0;
+            font-size: 0.92rem;
+            opacity: 0.9;
+        }
+
+        .status-modal-id {
+            font-family: monospace;
+            font-weight: 900;
+        }
+
+        .status-modal-close {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 auto;
+            border: 0;
+            border-radius: 9999px;
+            background: rgba(255, 255, 255, 0.16);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .status-modal-content {
+            padding: 18px;
+        }
+
+        .status-modal-chip {
+            padding: 12px;
+            border-radius: 12px;
+            border: 1px solid #dbe4ee;
+            background: #f8fafc;
+            margin-bottom: 14px;
+        }
+
+        .status-modal-chip-label,
+        .status-modal-section-title {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+            font-weight: 900;
+            color: #5a7186;
+        }
+
+        .status-modal-chip-value {
+            font-size: 0.98rem;
+            font-weight: 800;
+            color: #10243a;
+        }
+
+        .status-modal-section {
+            margin-top: 14px;
+        }
+
+        .status-modal-options {
+            display: grid;
+            gap: 10px;
+        }
+
+        .status-option {
+            width: 100%;
+            border: 1px solid #dbe4ee;
+            border-radius: 12px;
+            padding: 12px 14px;
+            background: #fff;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            cursor: pointer;
+            transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+            text-align: left;
+        }
+
+        .status-option:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 10px 22px rgba(15, 34, 53, 0.08);
+        }
+
+        .status-option.is-selected {
+            border-color: #1d4ed8;
+            background: #eff6ff;
+            box-shadow: 0 12px 24px rgba(29, 78, 216, 0.12);
+        }
+
+        .status-dot {
+            width: 16px;
+            height: 16px;
+            margin-top: 2px;
+            border-radius: 9999px;
+            border: 2px solid #c9d6e2;
+            flex: 0 0 auto;
+        }
+
+        .status-option.is-selected .status-dot {
+            border-color: #1d4ed8;
+            background: #1d4ed8;
+        }
+
+        .status-option-copy {
+            min-width: 0;
+            flex: 1;
+        }
+
+        .status-option-title {
+            display: block;
+            font-size: 0.94rem;
+            font-weight: 800;
+            color: #0f2235;
+        }
+
+        .status-option-text {
+            display: block;
+            margin-top: 2px;
+            font-size: 0.82rem;
+            color: #5e7488;
+        }
+
+        .status-modal-textarea {
+            width: 100%;
+            min-height: 92px;
+            resize: none;
+            border: 1px solid #dbe4ee;
+            border-radius: 12px;
+            padding: 12px 14px;
+            font-size: 0.94rem;
+            color: #10243a;
+            background: #fff;
+            outline: none;
+        }
+
+        .status-modal-textarea:focus {
+            border-color: #1d4ed8;
+            box-shadow: 0 0 0 4px rgba(29, 78, 216, 0.1);
+        }
+
+        .status-modal-actions {
+            margin-top: 16px;
+        }
+    </style>
 </head>
 <body class="bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50 min-h-screen">
     
     <div id="app"></div>
 
-    <script src="./js/user-data.js"></script>
-    <script src="./js/script-tecnico.js"></script>
+    <script src="./js/api-client.js?v=20260412a"></script>
+    <script src="./js/user-data.js?v=20260412a"></script>
+    <script src="./js/status-modal.js?v=20260412a"></script>
+    <script src="./js/script-tecnico.js?v=20260412a"></script>
 </body>
 </html>

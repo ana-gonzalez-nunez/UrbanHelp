@@ -67,7 +67,10 @@ VALUES
 (4, 'Ana', 'Torres', 'Vega', 'ana.torres@email.com', '1234', '600444444', '2025-01-10', 1, 2, 2),
 (5, 'Pedro', 'López', 'Jiménez', 'pedro.lopez@email.com', '1234', '600555555', '2025-06-18', 1, 1, NULL),
 (6, 'Elena', 'Sánchez', 'Morales', 'elena.sanchez@email.com', '1234', '600666666', '2025-09-22', 1, 2, 3),
-(7, 'Javier', 'Romero', 'Castro', 'javier.romero@email.com', '1234', '600777777', '2026-01-05', 1, 4, NULL);
+(7, 'Javier', 'Romero', 'Castro', 'javier.romero@email.com', '1234', '600777777', '2026-01-05', 1, 4, NULL),
+(8, 'Usuario', 'Demo', '-', 'user@urbanhelp.es', '123456', '600000001', '2026-04-11', 1, 1, NULL),
+(9, 'Tecnico', 'Demo', '-', 'tecnico@urbanhelp.es', '123456', '600000002', '2026-04-11', 1, 2, 1),
+(10, 'Admin', 'Demo', '-', 'admin@urbanhelp.es', '123456', '600000003', '2026-04-11', 1, 4, NULL);
 
 
 -- CATEGORIA --

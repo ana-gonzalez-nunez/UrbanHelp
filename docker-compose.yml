@@ -3,7 +3,7 @@ services:
     image: mysql:8.0
     container_name: proyectos2-db
     environment:
-      MYSQL_DATABASE: proyectos2
+      MYSQL_DATABASE: UrbanHelp
       MYSQL_ROOT_PASSWORD: postgres
       MYSQL_USER: postgres
       MYSQL_PASSWORD: postgres
@@ -23,6 +23,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: proyectos2-backend
+    environment:
+      MYSQL_USER: root
+      MYSQL_PASSWORD: postgres
+      MYSQL_HOST: db
+      MYSQL_PORT: 3306
+      MYSQL_DATABASE: UrbanHelp
     depends_on:
       db:
         condition: service_healthy

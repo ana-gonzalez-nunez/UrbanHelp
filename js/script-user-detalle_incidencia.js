@@ -162,9 +162,13 @@ async function initMapView(incident) {
   window.setTimeout(() => map.invalidateSize(), 120);
 }
 
-function render() {
+async function render() {
+  if (window.loadIncidentsFromApi) {
+    await window.loadIncidentsFromApi();
+  }
+
   const id = new URLSearchParams(window.location.search).get('id');
-  const incident = mockIncidents.find(i => i.id === id);
+  const incident = (window.mockIncidents || []).find(i => i.id === id);
   const app = document.getElementById('app');
 
   if (!incident) {

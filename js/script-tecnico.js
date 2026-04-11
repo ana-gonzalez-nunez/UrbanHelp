@@ -4,10 +4,24 @@ if (!window.lucide || typeof window.lucide.createIcons !== 'function') {
 }
 
 // ============ DATA & STATE ============
-const incidentsList = (window.mockIncidents || []).map(incident => ({
-    ...incident,
-    status: incident.status === 'en-proceso' ? 'en proceso' : incident.status
-}));
+let incidentsList = [];
+let currentTechnician = null;
+
+function refreshIncidentsList() {
+    const base = (window.mockIncidents || []).map(incident => ({
+        ...incident,
+        status: incident.status === 'en-proceso' ? 'en proceso' : incident.status
+    }));
+
+    if (!currentTechnician || !Number.isFinite(currentTechnician.id)) {
+        incidentsList = [];
+        return;
+    }
+
+    incidentsList = base.filter(incident => Number(incident.assignedTechnicianId) === Number(currentTechnician.id));
+}
+
+refreshIncidentsList();
 
 let statusFilter = 'todos';
 let categoryFilter = 'todos';
@@ -49,6 +63,11 @@ function getStatusBadge(status) {
     </span>`;
 }
 
+function getStatusPercentage(value, total) {
+    if (!total || total <= 0) return 0;
+    return Math.round((value / total) * 100);
+}
+
 function getMapUrl(incident) {
     if (window.getIncidentMapUrl) {
         return window.getIncidentMapUrl(incident);
@@ -74,6 +93,10 @@ function nextHistoryId(statusHistory) {
 }
 
 function getCurrentTechnicianName() {
+    if (currentTechnician && currentTechnician.nombre) {
+        return currentTechnician.nombre;
+    }
+
     const stored = localStorage.getItem('currentTechnicianName');
     if (stored && stored.trim()) return stored.trim();
 
@@ -85,6 +108,44 @@ function getCurrentTechnicianName() {
     return null;
 }
 
+function getCurrentSessionEmail() {
+    try {
+        const localSession = localStorage.getItem('urbanHelpSession');
+        const tempSession = sessionStorage.getItem('urbanHelpSession');
+        const raw = localSession || tempSession;
+        if (!raw) return null;
+
+        const parsed = JSON.parse(raw);
+        const email = parsed && typeof parsed.email === 'string' ? parsed.email.trim().toLowerCase() : '';
+        return email || null;
+    } catch {
+        return null;
+    }
+}
+
+async function resolveCurrentTechnician() {
+    const email = getCurrentSessionEmail();
+    if (!email || !window.userApi || typeof window.userApi.getByEmail !== 'function') {
+        currentTechnician = null;
+        return;
+    }
+
+    try {
+        const user = await window.userApi.getByEmail(email);
+        if (!user || user.role !== 'tecnico') {
+            currentTechnician = null;
+            return;
+        }
+
+        currentTechnician = {
+            id: Number(user.id),
+            nombre: user.nombre || 'Técnico'
+        };
+    } catch {
+        currentTechnician = null;
+    }
+}
+
 function persistIncidents() {
     if (window.saveIncidents) {
         window.saveIncidents(incidentsList);
@@ -93,8 +154,121 @@ function persistIncidents() {
     }
 }
 
+// ============ MODAL ESTADO ============
+let currentStatusModalIncidentId = null;
+let currentIncidentStatus = null;
+
+function openStatusModal(incidentId, event) {
+    if (event) event.stopPropagation();
+    currentStatusModalIncidentId = incidentId;
+
+    const modal = window.ensureIncidentStatusModal ? window.ensureIncidentStatusModal() : null;
+    if (window.wireIncidentStatusModalHandlers) {
+        window.wireIncidentStatusModalHandlers();
+    }
+    if (!modal) {
+        return;
+    }
+    
+    // Encontrar el status actual de la incidencia
+    const incident = incidentsList.find(i => String(i.id) === String(incidentId));
+    currentIncidentStatus = incident ? incident.status : 'desconocido';
+    
+    modal.querySelector('#modalIncidentId').textContent = `#${incidentId}`;
+    const currentStatusLabel = currentIncidentStatus.charAt(0).toUpperCase() + currentIncidentStatus.slice(1);
+    modal.querySelector('#currentStatus').textContent = currentStatusLabel;
+    modal.querySelector('#statusComment').value = '';
+    modal.querySelector('#statusSelect').value = '';
+    
+    // Reset all status buttons
+    modal.querySelectorAll('.status-option').forEach(btn => {
+        btn.classList.remove('is-selected');
+    });
+    
+    modal.classList.add('is-open');
+    document.body.classList.add('overflow-hidden');
+}
+
+function closeStatusModal() {
+    currentStatusModalIncidentId = null;
+    currentIncidentStatus = null;
+    const modal = window.ensureIncidentStatusModal ? window.ensureIncidentStatusModal() : null;
+    if (modal) {
+        modal.classList.remove('is-open');
+    }
+    document.body.classList.remove('overflow-hidden');
+}
+
+function selectStatus(status, buttonEl) {
+    const modal = window.ensureIncidentStatusModal ? window.ensureIncidentStatusModal() : null;
+    if (!modal) return;
+
+    modal.querySelector('#statusSelect').value = status;
+    
+    // Reset all buttons
+    modal.querySelectorAll('.status-option').forEach(btn => {
+        btn.classList.remove('is-selected');
+    });
+    
+    // Highlight selected
+    buttonEl.classList.add('is-selected');
+}
+
+async function updateIncidentStatus() {
+    const modal = window.ensureIncidentStatusModal ? window.ensureIncidentStatusModal() : null;
+    if (!modal) return;
+
+    const newStatus = modal.querySelector('#statusSelect').value;
+    const comment = modal.querySelector('#statusComment').value.trim();
+
+    if (!newStatus) {
+        alert('Por favor selecciona un estado');
+        return;
+    }
+
+    if (!currentStatusModalIncidentId) {
+        alert('Error: Incidencia no especificada');
+        return;
+    }
+
+    try {
+        // Actualizar en la API
+        const incidentId = Number(String(currentStatusModalIncidentId).replace(/\D/g, ''));
+        if (!Number.isFinite(incidentId) || incidentId <= 0) {
+            alert('ID de incidencia inválido');
+            return;
+        }
+
+        const result = await window.incidentApi.updateStatus(incidentId, newStatus);
+
+        // Actualizar lista local
+        const incident = incidentsList.find(i => String(i.id) === String(currentStatusModalIncidentId));
+        if (incident) {
+            incident.status = newStatus;
+            if (comment) {
+                incident.lastStatusUpdate = `${formatActionDate(new Date())} - ${comment}`;
+            }
+            persistIncidents();
+        }
+
+        // Recargar desde API
+        if (window.loadIncidentsFromApi) {
+            await window.loadIncidentsFromApi();
+            refreshIncidentsList();
+        }
+
+        closeStatusModal();
+        render();
+
+        alert('Estado actualizado correctamente');
+    } catch (error) {
+        console.error('Error actualizando estado:', error);
+        alert('Error al actualizar el estado. Por favor intenta de nuevo.');
+    }
+}
+
 // ============ ACTIONS ============
-function assignIncidentToCurrentTechnician(id, event) {
+async function assignIncidentToCurrentTechnician(id, event) {
     if (event) event.stopPropagation();
 
     const technicianName = getCurrentTechnicianName();
@@ -133,6 +307,22 @@ function assignIncidentToCurrentTechnician(id, event) {
     }
 
     persistIncidents();
+
+    if (window.incidentApi && typeof window.incidentApi.updateStatus === 'function') {
+        const numericId = Number(String(id).replace('INC', ''));
+        if (Number.isFinite(numericId)) {
+            try {
+                await window.incidentApi.updateStatus(numericId, incident.status);
+                if (window.loadIncidentsFromApi) {
+                    await window.loadIncidentsFromApi();
+                    refreshIncidentsList();
+                }
+            } catch {
+                // Keep local fallback if API fails.
+            }
+        }
+    }
+
     render();
 }
 
@@ -203,11 +393,16 @@ function renderDashboard() {
                             Gestiona tus incidencias de manera eficiente
                         </p>
                     </div>
-                    <div class="hidden md:flex items-center gap-3 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 text-white px-6 py-3 rounded-xl shadow-lg">
-                        <i data-lucide="clipboard-list" class="h-6 w-6"></i>
-                        <div class="text-right">
-                            <p class="text-xs opacity-90">Total activas</p>
-                            <p class="text-2xl font-bold">${stats.total - stats.resolved}</p>
+                    <div class="hidden md:flex items-center gap-3">
+                        <a href="perfil-tecnico.html" class="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors" title="Ir a mi perfil" aria-label="Ir a mi perfil">
+                            <i data-lucide="user-circle-2" class="w-5 h-5"></i>
+                        </a>
+                        <div class="flex items-center gap-3 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 text-white px-6 py-3 rounded-xl shadow-lg">
+                            <i data-lucide="clipboard-list" class="h-6 w-6"></i>
+                            <div class="text-right">
+                                <p class="text-xs opacity-90">Total activas</p>
+                                <p class="text-2xl font-bold">${stats.total - stats.resolved}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -273,7 +468,7 @@ function renderDashboard() {
                                 <span class="text-sm font-bold text-orange-600">${stats.pending}</span>
                             </div>
                             <div class="h-3 bg-slate-200 rounded-full overflow-hidden">
-                                <div class="h-full bg-orange-500" style="width: ${(stats.pending / stats.total) * 100}%"></div>
+                                <div class="h-full bg-orange-500" style="width: ${getStatusPercentage(stats.pending, stats.total)}%"></div>
                             </div>
                         </div>
                         <div class="space-y-3">
@@ -282,7 +477,7 @@ function renderDashboard() {
                                 <span class="text-sm font-bold text-violet-600">${stats.inProgress}</span>
                             </div>
                             <div class="h-3 bg-slate-200 rounded-full overflow-hidden">
-                                <div class="h-full bg-violet-500" style="width: ${(stats.inProgress / stats.total) * 100}%"></div>
+                                <div class="h-full bg-violet-500" style="width: ${getStatusPercentage(stats.inProgress, stats.total)}%"></div>
                             </div>
                         </div>
                         <div class="space-y-3">
@@ -291,7 +486,7 @@ function renderDashboard() {
                                 <span class="text-sm font-bold text-emerald-600">${stats.resolved}</span>
                             </div>
                             <div class="h-3 bg-slate-200 rounded-full overflow-hidden">
-                                <div class="h-full bg-emerald-500" style="width: ${(stats.resolved / stats.total) * 100}%"></div>
+                                <div class="h-full bg-emerald-500" style="width: ${getStatusPercentage(stats.resolved, stats.total)}%"></div>
                             </div>
                         </div>
                     </div>
@@ -321,20 +516,25 @@ function renderDashboard() {
                                 <th class="px-6 py-4 text-sm">Ubicación</th>
                                 <th class="px-6 py-4 text-sm">Prioridad</th>
                                 <th class="px-6 py-4 text-sm">Estado</th>
-                                <th class="px-6 py-4 text-sm">Acción</th>
+                                <th class="px-6 py-4 text-sm">Acciones</th>
                             </tr>
                         </thead>
                         <tbody>
-                            ${filtered.map(inc => `
-                                <tr onclick="openIncident('${inc.id}')" class="cursor-pointer hover:bg-indigo-50/50 border-b">
-                                    <td class="px-6 py-4 font-bold text-indigo-600">${inc.id}</td>
-                                    <td class="px-6 py-4 text-sm">${inc.category}</td>
-                                    <td class="px-6 py-4 text-sm">${inc.location}</td>
+                            ${filtered.length === 0 ? `
+                                <tr>
+                                    <td colspan="6" class="px-6 py-10 text-center text-sm text-slate-500">No tienes incidencias asignadas actualmente.</td>
+                                </tr>
+                            ` : filtered.map(inc => `
+                                <tr class="hover:bg-indigo-50/50 border-b">
+                                    <td class="px-6 py-4 font-bold text-indigo-600 cursor-pointer" onclick="openIncident('${inc.id}')" title="Ver detalles">${inc.id}</td>
+                                    <td class="px-6 py-4 text-sm cursor-pointer" onclick="openIncident('${inc.id}')">${inc.category}</td>
+                                    <td class="px-6 py-4 text-sm cursor-pointer" onclick="openIncident('${inc.id}')">${inc.location}</td>
                                     <td class="px-6 py-4">${getPriorityBadge(inc.priority)}</td>
                                     <td class="px-6 py-4">${getStatusBadge(inc.status)}</td>
                                     <td class="px-6 py-4">
-                                        <button onclick="assignIncidentToCurrentTechnician('${inc.id}', event)" class="px-3 py-1.5 rounded-lg border border-indigo-200 text-indigo-700 text-xs font-semibold hover:bg-indigo-50">
-                                            Asignarme
+                                        <button onclick="openStatusModal('${inc.id}', event)" class="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors text-sm font-semibold" title="Cambiar estado">
+                                            <i data-lucide="edit-2" class="h-4 w-4"></i>
+                                            Cambiar
                                         </button>
                                     </td>
                                 </tr>
@@ -347,7 +547,14 @@ function renderDashboard() {
     `;
 }
 
-function render() {
+async function render() {
+    await resolveCurrentTechnician();
+
+    if (window.loadIncidentsFromApi) {
+        await window.loadIncidentsFromApi();
+        refreshIncidentsList();
+    }
+
     const app = document.getElementById('app');
     try {
         app.innerHTML = renderDashboard();
@@ -360,3 +567,25 @@ function render() {
 
 // Inicialización
 render();
+
+let technicianRefreshTimer = null;
+
+function refreshTechnicianDashboard() {
+    if (technicianRefreshTimer) {
+        clearTimeout(technicianRefreshTimer);
+    }
+
+    technicianRefreshTimer = setTimeout(() => {
+        render();
+    }, 100);
+}
+
+window.addEventListener('pageshow', () => {
+    refreshTechnicianDashboard();
+});
+
+window.addEventListener('storage', (event) => {
+    if (!event || event.key === 'urbanHelpIncidents' || event.key === 'urbanHelpIncidentsApiCache') {
+        refreshTechnicianDashboard();
+    }
+});

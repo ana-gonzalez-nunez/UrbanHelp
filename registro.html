@@ -76,6 +76,7 @@
         </section>
     </div>
 
+    <script src="./js/api-client.js"></script>
     <script src="./js/user-data.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -92,50 +93,60 @@
                 return;
             }
 
-            registroForm.addEventListener('submit', (event) => {
+            registroForm.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
                 if (!registroForm.checkValidity()) {
-                    event.preventDefault();
                     showNotice('Revisa los campos obligatorios antes de continuar.');
                     return;
                 }
 
+                const formData = new FormData(registroForm);
+                const nombre = (formData.get('nombre') || '').toString().trim();
+                const apellido1 = (formData.get('apellido_1') || '').toString().trim();
+                const apellido2 = (formData.get('apellido_2') || '').toString().trim();
+                const email = (formData.get('email') || '').toString().trim().toLowerCase();
+                const contrasena = (formData.get('contrasena') || '').toString();
+                const telefono = (formData.get('telefono') || '').toString().trim();
+                const rol = (formData.get('rol') || '').toString().trim();
+
+                try {
+                    if (window.userApi && typeof window.userApi.register === 'function') {
+                        await window.userApi.register({
+                            nombre,
+                            apellido_1: apellido1,
+                            apellido_2: apellido2,
+                            email,
+                            contrasena,
+                            telefono,
+                            rol
+                        });
+                    }
+                } catch (error) {
+                    const rawMessage = (error && error.message ? error.message : '').trim();
+                    const text = rawMessage.toLowerCase();
+                    if (text.includes('409') || text.includes('existe')) {
+                        showNotice('Ya existe una cuenta con este correo.');
+                    } else if (text.includes('failed to fetch') || text.includes('networkerror') || text.includes('network')) {
+                        showNotice('No hay conexion con el backend. Verifica que este levantado en http://localhost:8080.');
+                    } else {
+                        showNotice(rawMessage ? `No se pudo completar el registro: ${rawMessage}` : 'No se pudo completar el registro. Intentalo de nuevo.');
+                    }
+                    return;
+                }
+
                 if (rolSelect.value === 'tecnico') {
-                    const approved = window.confirm('Las cuentas técnicas necesitan aprobación del administrador. ¿Quieres enviar la solicitud?');
-
-                    if (!approved) {
-                        event.preventDefault();
-                        return;
-                    }
-
-                    // Evita quedarse bloqueado esperando respuesta del backend.
-                    event.preventDefault();
-
-                    const formData = new FormData(registroForm);
-                    const nombre = (formData.get('nombre') || '').toString().trim();
-                    const apellido1 = (formData.get('apellido_1') || '').toString().trim();
-                    const apellido2 = (formData.get('apellido_2') || '').toString().trim();
-                    const email = (formData.get('email') || '').toString().trim();
-
-                    const requestPayload = {
-                        id: `SOL${Date.now().toString().slice(-6)}`,
-                        nombre: [nombre, apellido1, apellido2].filter(Boolean).join(' '),
-                        email,
-                        especialidad: 'General',
-                        fecha: new Date().toISOString().slice(0, 10),
-                        status: 'pendiente',
-                        createdAt: new Date().toISOString()
-                    };
-
-                    if (window.addTechnicianRequest) {
-                        window.addTechnicianRequest(requestPayload);
-                    }
-
-                    showNotice('Solicitud técnica enviada. Serás redirigido al inicio de sesión tras el registro.');
-
+                    showNotice('Registro completado. Tu cuenta técnica queda pendiente de aprobación por un administrador.');
                     window.setTimeout(() => {
                         window.location.href = 'login.html';
-                    }, 1200);
+                    }, 1300);
+                    return;
                 }
+
+                showNotice('Registro completado. Redirigiendo al inicio de sesion...');
+                window.setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 1000);
             });
         });
     </script>
