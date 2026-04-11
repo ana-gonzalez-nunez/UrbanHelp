@@ -89,11 +89,12 @@
                     <p>Contraseña de prueba: <span>123456</span></p>
                 </div>
 
-                <a href="regristo.html" class="create-account">Crear cuenta <span aria-hidden="true">→</span></a>
+                <a href="./registro.html" class="create-account">Crear cuenta <span aria-hidden="true">→</span></a>
             </div>
         </div>
     </div>
 
+    <script src="./js/user-data.js"></script>
     <script>
         const loginForm = document.getElementById('loginForm');
         const emailInput = document.getElementById('email-input');
@@ -116,6 +117,10 @@
 
         function inferRole(email) {
             const normalized = email.trim().toLowerCase();
+
+            if (window.isTechnicianApproved && window.isTechnicianApproved(normalized)) {
+                return 'tecnico';
+            }
 
             if (normalized.includes('admin')) {
                 return 'admin';
@@ -168,6 +173,7 @@
 
             const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
+            const normalizedEmail = email.toLowerCase();
 
             if (!email || !password) {
                 showMessage('Introduce tu correo y tu contraseña.', 'error');
@@ -176,6 +182,20 @@
 
             if (password.length < 6) {
                 showMessage('La contraseña debe tener al menos 6 caracteres.', 'error');
+                return;
+            }
+
+            const requestStatus = window.getTechnicianRequestStatus
+                ? window.getTechnicianRequestStatus(normalizedEmail)
+                : null;
+
+            if (requestStatus === 'pendiente') {
+                showMessage('Tu solicitud de técnico sigue pendiente de aprobación por el administrador.', 'error');
+                return;
+            }
+
+            if (requestStatus === 'rechazada') {
+                showMessage('Tu solicitud de técnico ha sido rechazada. Contacta con administración.', 'error');
                 return;
             }
 
