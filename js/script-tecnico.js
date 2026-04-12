@@ -40,6 +40,15 @@ function getPriorityColor(priority) {
     return { bg: 'bg-green-100', text: 'text-green-700', border: 'border-green-400' };
 }
 
+function getStatusDisplayLabel(status) {
+    const normalized = String(status || '').trim().toLowerCase();
+    if (normalized === 'solucionada' || normalized === 'resuelta') return 'Resuelta';
+    if (normalized === 'pendiente') return 'Pendiente';
+    if (normalized === 'en proceso') return 'En proceso';
+    if (!normalized) return 'Desconocido';
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
 function getFilteredIncidents() {
     return incidentsList.filter(inc => {
         const statusMatch = statusFilter === 'todos' || inc.status === statusFilter;
@@ -175,8 +184,7 @@ function openStatusModal(incidentId, event) {
     currentIncidentStatus = incident ? incident.status : 'desconocido';
     
     modal.querySelector('#modalIncidentId').textContent = `#${incidentId}`;
-    const currentStatusLabel = currentIncidentStatus.charAt(0).toUpperCase() + currentIncidentStatus.slice(1);
-    modal.querySelector('#currentStatus').textContent = currentStatusLabel;
+    modal.querySelector('#currentStatus').textContent = getStatusDisplayLabel(currentIncidentStatus);
     modal.querySelector('#statusComment').value = '';
     modal.querySelector('#statusSelect').value = '';
     

@@ -103,7 +103,8 @@ CREATE TABLE Incidencia (
     IdCategoria INT NOT NULL,
     IdServicio INT NULL,
     IdTecnicoAsignado INT NULL,
-    Estado ENUM('Pendiente','Asignada','En proceso','Solucionada','Denegada') NOT NULL,
+    Estado ENUM('Pendiente','Asignada','En proceso','Solucionada') NOT NULL,
+(7, 'Limpieza grafiti', 'Grafiti en fachada municipal', '2026-02-01', NULL, 'Pendiente', 'Media', 'Plaza España 4', 1, 2,\t2, 4);
 
 
     CONSTRAINT FK_Incidencia_UsuarioCreador
@@ -128,7 +129,7 @@ VALUES
 (4, 'Banco roto', 'Banco partido en parque central', '2025-07-05', NULL, 'Asignada', 'Media', 'Parque Central', 2, 7, 7, NULL),
 (5, 'Fuga de agua', 'Agua saliendo de alcantarilla', '2025-11-11', NULL, 'En proceso', 'Urgente', 'Calle Río 3', 1, 6, 6, 6),
 (6, 'Señal caída', 'Señal de stop caída', '2026-01-20', NULL, 'Pendiente', 'Baja', 'Calle Norte 12', 2, 5, 5, NULL),
-(7, 'Limpieza grafiti', 'Grafiti en fachada municipal', '2026-02-01', NULL, 'Denegada', 'Media', 'Plaza España 4', 1, 2,	2, 4);
+(7, 'Limpieza grafiti', 'Grafiti en fachada municipal', '2026-02-01', NULL, 'Pendiente', 'Media', 'Plaza España 4', 1, 2,	2, 4);
 
 
 
@@ -189,8 +190,8 @@ VALUES
 -- HISTORIAL ESTADO --
 CREATE TABLE HistorialEstado (
     IdHistorial INT AUTO_INCREMENT PRIMARY KEY,
-    EstadoAnterior ENUM('Pendiente','Asignada','En proceso','Solucionada','Denegada') NOT NULL,
-    EstadoNuevo ENUM('Pendiente','Asignada','En proceso','Solucionada','Denegada') NOT NULL,
+    EstadoAnterior ENUM('Pendiente','Asignada','En proceso','Solucionada') NOT NULL,
+    EstadoNuevo ENUM('Pendiente','Asignada','En proceso','Solucionada') NOT NULL,
     FechaCambio DATETIME DEFAULT CURRENT_TIMESTAMP,
     Comentario VARCHAR(300),
 
@@ -213,6 +214,6 @@ VALUES
 (4, 'Pendiente', 'Solucionada', '2025-02-20', 'Incidencia solucionada', 3, 4),
 (5, 'Pendiente', 'En proceso', '2025-11-12', 'Fuga en reparación', 5, 5),
 (6, 'Pendiente', 'En proceso', '2026-02-02', 'Grafiti en tratamiento', 7, 4),
-(7, 'En proceso', 'Denegada', '2026-02-10', 'Pendiente confirmación', 7, 5);
+(7, 'En proceso', 'Pendiente', '2026-02-10', 'Pendiente confirmación', 7, 5);
 
 

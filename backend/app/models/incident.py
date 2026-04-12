@@ -19,6 +19,6 @@ class Incident(Base):
 	IdServicio = Column(Integer, nullable=True)
 	IdTecnicoAsignado = Column(Integer, nullable=True)
 	Estado = Column(
-		Enum("Pendiente", "Asignada", "En proceso", "Solucionada", "Denegada", name="estado_enum"),
+		Enum("Pendiente", "Asignada", "En proceso", "Solucionada", name="estado_enum"),
 		nullable=False,
 	)

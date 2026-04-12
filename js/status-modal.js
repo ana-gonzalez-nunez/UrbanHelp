@@ -38,19 +38,19 @@
                 </span>
               </button>
 
-              <button type="button" class="status-option" data-status="solucionada">
+              <button type="button" class="status-option" data-status="resuelta">
                 <span class="status-dot"></span>
                 <span class="status-option-copy">
-                  <span class="status-option-title">Solucionada</span>
+                  <span class="status-option-title">Resuelta</span>
                   <span class="status-option-text">La incidencia ya quedó resuelta.</span>
                 </span>
               </button>
 
-              <button type="button" class="status-option" data-status="denegada">
+              <button type="button" class="status-option" data-status="pendiente">
                 <span class="status-dot"></span>
                 <span class="status-option-copy">
-                  <span class="status-option-title">Denegada</span>
-                  <span class="status-option-text">La incidencia no procede o se rechaza.</span>
+                  <span class="status-option-title">Pendiente</span>
+                  <span class="status-option-text">La incidencia queda a la espera de revisión.</span>
                 </span>
               </button>
             </div>

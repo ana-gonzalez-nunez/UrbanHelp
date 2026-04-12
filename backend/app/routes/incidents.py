@@ -45,7 +45,6 @@ def normalize_status(status: str) -> str:
 		"Asignada": "en-proceso",
 		"En proceso": "en-proceso",
 		"Solucionada": "resuelta",
-		"Denegada": "resuelta",
 	}
 	return mapping.get(status, "pendiente")
 
@@ -57,7 +56,6 @@ def normalize_status_to_db(status: str) -> str:
 		"en proceso": "En proceso",
 		"resuelta": "Solucionada",
 		"solucionada": "Solucionada",
-		"denegada": "Denegada",
 		"asignada": "Asignada",
 	}
 	return mapping.get((status or "pendiente").strip().lower(), "Pendiente")

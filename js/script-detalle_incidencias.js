@@ -99,6 +99,15 @@ function getExternalMapUrl(incident) {
     return `https://www.google.com/maps?q=${encodeURIComponent(location)}`;
 }
 
+function getStatusDisplayLabel(status) {
+    const normalized = String(status || '').trim().toLowerCase();
+    if (normalized === 'solucionada' || normalized === 'resuelta') return 'Resuelta';
+    if (normalized === 'pendiente') return 'Pendiente';
+    if (normalized === 'en proceso') return 'En proceso';
+    if (!normalized) return 'Desconocido';
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+}
+
 let detailStatusModalEl = null;
 let detailStatusIncident = null;
 let detailSelectedStatus = '';
@@ -139,18 +148,18 @@ function ensureDetailStatusModal() {
                                 <span class="block text-xs text-slate-500">La incidencia está siendo atendida.</span>
                             </span>
                         </button>
-                        <button type="button" class="detail-status-option w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left flex items-start gap-3 hover:border-emerald-500 hover:shadow-sm transition-all" data-status="solucionada">
+                        <button type="button" class="detail-status-option w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left flex items-start gap-3 hover:border-emerald-500 hover:shadow-sm transition-all" data-status="resuelta">
                             <span class="detail-status-dot mt-1 w-4 h-4 rounded-full border-2 border-slate-300"></span>
                             <span>
-                                <span class="block text-sm font-bold text-slate-900">Solucionada</span>
+                                <span class="block text-sm font-bold text-slate-900">Resuelta</span>
                                 <span class="block text-xs text-slate-500">La incidencia ya quedó resuelta.</span>
                             </span>
                         </button>
-                        <button type="button" class="detail-status-option w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left flex items-start gap-3 hover:border-rose-500 hover:shadow-sm transition-all" data-status="denegada">
+                        <button type="button" class="detail-status-option w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-left flex items-start gap-3 hover:border-amber-500 hover:shadow-sm transition-all" data-status="pendiente">
                             <span class="detail-status-dot mt-1 w-4 h-4 rounded-full border-2 border-slate-300"></span>
                             <span>
-                                <span class="block text-sm font-bold text-slate-900">Denegada</span>
-                                <span class="block text-xs text-slate-500">La incidencia no procede o se rechaza.</span>
+                                <span class="block text-sm font-bold text-slate-900">Pendiente</span>
+                                <span class="block text-xs text-slate-500">La incidencia queda a la espera de revisión.</span>
                             </span>
                         </button>
                     </div>
@@ -182,8 +191,8 @@ function ensureDetailStatusModal() {
     detailStatusModalEl.querySelectorAll('.detail-status-option').forEach((button) => {
         button.addEventListener('click', () => {
             detailSelectedStatus = button.dataset.status || '';
-            detailStatusModalEl.querySelectorAll('.detail-status-option').forEach(option => option.classList.remove('border-blue-500', 'border-emerald-500', 'border-rose-500', 'bg-blue-50', 'bg-emerald-50', 'bg-rose-50'));
-            detailStatusModalEl.querySelectorAll('.detail-status-dot').forEach(dot => dot.classList.remove('bg-blue-600', 'bg-emerald-600', 'bg-rose-600', 'border-blue-600', 'border-emerald-600', 'border-rose-600'));
+            detailStatusModalEl.querySelectorAll('.detail-status-option').forEach(option => option.classList.remove('border-blue-500', 'border-emerald-500', 'border-rose-500', 'border-amber-500', 'bg-blue-50', 'bg-emerald-50', 'bg-rose-50', 'bg-amber-50'));
+            detailStatusModalEl.querySelectorAll('.detail-status-dot').forEach(dot => dot.classList.remove('bg-blue-600', 'bg-emerald-600', 'bg-rose-600', 'bg-amber-600', 'border-blue-600', 'border-emerald-600', 'border-rose-600', 'border-amber-600'));
             button.classList.add('bg-blue-50');
             const dot = button.querySelector('.detail-status-dot');
             if (dot) {
@@ -191,16 +200,16 @@ function ensureDetailStatusModal() {
                 dot.classList.remove('border-slate-300');
                 dot.classList.add('border-blue-600');
             }
-            if (detailSelectedStatus === 'solucionada') {
+            if (detailSelectedStatus === 'resuelta') {
                 button.classList.remove('bg-blue-50');
                 button.classList.add('bg-emerald-50', 'border-emerald-500');
                 dot.classList.remove('bg-blue-600', 'border-blue-600');
                 dot.classList.add('bg-emerald-600', 'border-emerald-600');
-            } else if (detailSelectedStatus === 'denegada') {
+            } else if (detailSelectedStatus === 'pendiente') {
                 button.classList.remove('bg-blue-50');
-                button.classList.add('bg-rose-50', 'border-rose-500');
+                button.classList.add('bg-amber-50', 'border-amber-500');
                 dot.classList.remove('bg-blue-600', 'border-blue-600');
-                dot.classList.add('bg-rose-600', 'border-rose-600');
+                dot.classList.add('bg-amber-600', 'border-amber-600');
             } else {
                 button.classList.add('border-blue-500');
             }
@@ -216,10 +225,10 @@ function openDetailStatusModal(incident) {
     detailSelectedStatus = '';
     const modal = ensureDetailStatusModal();
     modal.querySelector('#detailStatusIncidentId').textContent = `#${incident.id}`;
-    modal.querySelector('#detailCurrentStatus').textContent = incident.status;
+    modal.querySelector('#detailCurrentStatus').textContent = getStatusDisplayLabel(incident.status);
     modal.querySelector('#detailStatusComment').value = '';
     modal.querySelectorAll('.detail-status-option').forEach(option => {
-        option.classList.remove('bg-blue-50', 'bg-emerald-50', 'bg-rose-50', 'border-blue-500', 'border-emerald-500', 'border-rose-500');
+        option.classList.remove('bg-blue-50', 'bg-emerald-50', 'bg-rose-50', 'bg-amber-50', 'border-blue-500', 'border-emerald-500', 'border-rose-500', 'border-amber-500');
     });
     modal.classList.add('is-open');
     document.body.classList.add('overflow-hidden');
