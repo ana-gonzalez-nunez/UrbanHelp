@@ -4,10 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="http://localhost:8081/">
     <title>Gestor Municipal Pro - v3.0 (Data Sync)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="./js/api-client.js"></script>
     <script src="./js/user-data.js"></script>
     <script src="./js/logout-modal.js"></script>
     <link rel="stylesheet" href="./css/style_app.css">
@@ -74,9 +76,35 @@
         
         let listaUsuarios = typeof getAppUsers === 'function' ? getAppUsers() : [];
 
-        function refreshUsers() {
+        async function refreshUsers() {
+            if (window.adminApi && typeof window.adminApi.listUsers === 'function') {
+                try {
+                    const users = await window.adminApi.listUsers();
+                    if (Array.isArray(users)) {
+                        listaUsuarios = users;
+                        return;
+                    }
+                } catch {
+                    // Fallback to local data below.
+                }
+            }
+
             if (typeof getAppUsers === 'function') {
                 listaUsuarios = getAppUsers();
+            }
+        }
+
+        async function refreshIncidents() {
+            if (window.loadIncidentsFromApi && typeof window.loadIncidentsFromApi === 'function') {
+                try {
+                    await window.loadIncidentsFromApi();
+                } catch {
+                    // Keep local fallback.
+                }
+            }
+
+            if (typeof getIncidents === 'function') {
+                incidenciasActuales = getIncidents();
             }
         }
 
@@ -91,9 +119,14 @@
             document.getElementById('backdrop').classList.toggle('hidden', !sidebarOpen);
         }
 
-        function switchTab(tabId, id = null) {
+        function incidentHasAssignedTechnician(incident) {
+            return !!(incident && incident.assignedTechnician && String(incident.assignedTechnician).trim());
+        }
+
+        async function switchTab(tabId, id = null) {
             currentTab = tabId;
             editingId = id;
+            await refreshIncidents();
             renderApp();
             window.scrollTo(0, 0);
         }
@@ -101,7 +134,9 @@
         function renderApp() {
             const container = document.getElementById('app-container');
             const nav = document.getElementById('nav-links');
-            incidenciasActuales = getIncidents(); // Refrescar datos desde localStorage
+            if (typeof getIncidents === 'function') {
+                incidenciasActuales = getIncidents();
+            }
 
             const menuItems = [
                 { id: 'dashboard', name: 'Panel Principal', icon: 'layout-dashboard' },
@@ -217,7 +252,13 @@
                                         <td class="px-6 py-4">${getStatusBadge(inc.status)}</td>
                                         <td class="px-6 py-4 font-bold text-[10px] uppercase ${getPriorityColor(inc.priority)}">${inc.priority}</td>
                                         <td class="px-6 py-4">
-                                            <button onclick="mostrarSelectorTecnicos('${inc.id}')" class="bg-gray-100 text-gray-600 px-3 py-1 rounded-lg text-xs font-bold hover:bg-blue-600 hover:text-white transition-all">Asignar</button>
+                                            <button
+                                                onclick="mostrarSelectorTecnicos('${inc.id}')"
+                                                ${incidentHasAssignedTechnician(inc) ? 'disabled' : ''}
+                                                class="px-3 py-1 rounded-lg text-xs font-bold transition-all ${incidentHasAssignedTechnician(inc) ? 'bg-green-100 text-green-700 cursor-not-allowed' : 'bg-gray-100 text-gray-600 hover:bg-blue-600 hover:text-white'}"
+                                            >
+                                                ${incidentHasAssignedTechnician(inc) ? 'Asignado' : 'Asignar'}
+                                            </button>
                                         </td>
                                         <td class="px-6 py-4 text-right flex justify-end gap-1">
                                             <button onclick="openModal('${inc.id}')" class="text-blue-600 hover:bg-blue-50 p-2 rounded-lg"><i data-lucide="eye" class="w-4 h-4"></i></button>
@@ -233,9 +274,20 @@
             lucide.createIcons();
         }
 
-        function renderSolicitudes(container) {
+        async function fetchSolicitudesTecnicos() {
+            if (window.adminApi && typeof window.adminApi.listTechnicianRequests === 'function') {
+                try {
+                    return await window.adminApi.listTechnicianRequests();
+                } catch {
+                    return [];
+                }
+            }
             const solicitudes = typeof getTechnicianRequests === 'function' ? getTechnicianRequests() : [];
-            const solicitudesPendientes = solicitudes.filter((s) => (s.status || 'pendiente') === 'pendiente');
+            return solicitudes.filter((s) => (s.status || 'pendiente') === 'pendiente');
+        }
+
+        async function renderSolicitudes(container) {
+            const solicitudesPendientes = await fetchSolicitudesTecnicos();
 
             container.innerHTML = `
                 <div class="space-y-6 fade-in">
@@ -263,10 +315,10 @@
                                     </div>
                                 </div>
                                 <div class="flex gap-2 w-full md:w-auto">
-                                    <button onclick="gestionarSolicitud('${sol.id}', 'aceptar')" class="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all">
+                                        <button onclick="gestionarSolicitud('${sol.id}', 'aceptar')" class="flex-1 md:flex-none bg-green-600 text-white px-4 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-green-700 transition-all">
                                         <i data-lucide="check" class="w-4 h-4"></i> Aceptar
                                     </button>
-                                    <button onclick="gestionarSolicitud('${sol.id}', 'rechazar')" class="flex-1 md:flex-none bg-white border border-red-200 text-red-600 px-4 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-all">
+                                        <button onclick="gestionarSolicitud('${sol.id}', 'rechazar')" class="flex-1 md:flex-none bg-white border border-red-200 text-red-600 px-4 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-red-50 transition-all">
                                         <i data-lucide="x" class="w-4 h-4"></i> Rechazar
                                     </button>
                                 </div>
@@ -283,10 +335,22 @@
             lucide.createIcons();
         }
 
-        function gestionarSolicitud(id, accion) {
+        async function gestionarSolicitud(id, accion) {
             const confirmacion = confirm(`¿Estás seguro de que deseas ${accion} esta solicitud?`);
             if (confirmacion) {
-                if (typeof resolveTechnicianRequest === 'function') {
+                if (window.adminApi) {
+                    try {
+                        if (accion === 'aceptar' && typeof window.adminApi.approveTechnicianRequest === 'function') {
+                            await window.adminApi.approveTechnicianRequest(id);
+                        }
+                        if (accion === 'rechazar' && typeof window.adminApi.rejectTechnicianRequest === 'function') {
+                            await window.adminApi.rejectTechnicianRequest(id);
+                        }
+                    } catch {
+                        alert('No se pudo actualizar la solicitud en servidor.');
+                        return;
+                    }
+                } else if (typeof resolveTechnicianRequest === 'function') {
                     resolveTechnicianRequest(id, accion === 'aceptar' ? 'aceptada' : 'rechazada');
                 }
 
@@ -370,8 +434,8 @@
         }
 
         // --- USUARIOS ---
-        function renderUsuarios(container) {
-            refreshUsers();
+        async function renderUsuarios(container) {
+            await refreshUsers();
             container.innerHTML = `
                 <div class="fade-in space-y-6">
                     <h1 class="text-3xl font-bold">Usuarios</h1>
@@ -388,7 +452,7 @@
                                 ${listaUsuarios.map(u => `
                                     <tr class="border-b hover:bg-gray-50 transition-all">
                                         <td class="p-4 flex items-center gap-3">
-                                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">${u.nombre.substring(0,2)}</div>
+                                            <div class="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center font-bold text-xs">${(u.nombre || 'U').substring(0,2)}</div>
                                             <div><p class="font-bold">${u.nombre}</p><p class="text-xs text-gray-400">${u.email}</p></div>
                                         </td>
                                         <td class="p-4"><span class="px-2 py-1 bg-gray-100 rounded text-[10px] font-bold uppercase">${u.rol}</span></td>
@@ -403,10 +467,15 @@
                         </table>
                     </div>
                 </div>`;
+            lucide.createIcons();
         }
 
         function renderEditUsuario(container, userId) {
             const user = listaUsuarios.find(u => u.id === userId);
+            if (!user) {
+                container.innerHTML = `<div class="text-center p-10">Usuario no encontrado.</div>`;
+                return;
+            }
             container.innerHTML = `
                 <div class="fade-in max-w-xl mx-auto space-y-6">
                     <button onclick="switchTab('usuarios')" class="flex items-center gap-2 text-gray-500 hover:text-blue-600 transition-colors">
@@ -423,6 +492,7 @@
                                 <option value="ciudadano" ${user.rol === 'ciudadano' ? 'selected' : ''}>Ciudadano</option>
                                 <option value="tecnico" ${user.rol === 'tecnico' ? 'selected' : ''}>Técnico</option>
                                 <option value="gestor" ${user.rol === 'gestor' ? 'selected' : ''}>Gestor</option>
+                                <option value="admin" ${user.rol === 'admin' ? 'selected' : ''}>Admin</option>
                             </select>
                             <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">Actualizar Rol</button>
                         </form>
@@ -430,24 +500,46 @@
                 </div>`;
         }
 
-        function guardarRolForm(event, userId) {
+        async function guardarRolForm(event, userId) {
             event.preventDefault();
             const nuevoRol = new FormData(event.target).get('rol');
-            const idx = listaUsuarios.findIndex(u => u.id === userId);
-            listaUsuarios[idx].rol = nuevoRol;
-            if (typeof saveAppUsers === 'function') {
-                saveAppUsers(listaUsuarios);
+
+            if (window.adminApi && typeof window.adminApi.updateUserRole === 'function') {
+                try {
+                    await window.adminApi.updateUserRole(userId, nuevoRol);
+                    alert('Rol actualizado en base de datos');
+                    switchTab('usuarios');
+                    return;
+                } catch {
+                    alert('No se pudo actualizar el rol en servidor');
+                    return;
+                }
             }
+
+            const idx = listaUsuarios.findIndex(u => u.id === userId);
+            if (idx >= 0) listaUsuarios[idx].rol = nuevoRol;
+            if (typeof saveAppUsers === 'function') saveAppUsers(listaUsuarios);
             alert('Rol actualizado localmente');
             switchTab('usuarios');
         }
 
         // --- ASIGNACIÓN ---
-        function mostrarSelectorTecnicos(id) {
+        async function mostrarSelectorTecnicos(id) {
             const modal = document.getElementById('modal');
             const content = document.getElementById('modal-content');
-            const tecnicos = listaUsuarios.filter(u => u.rol === 'tecnico');
+            await refreshUsers();
+            const tecnicos = listaUsuarios.filter(u => u.rol === 'tecnico' && u.estadoCuenta !== false);
             const inc = incidenciasActuales.find(i => i.id === id);
+
+            if (!inc) {
+                alert('No se encontro la incidencia seleccionada.');
+                return;
+            }
+
+            if (incidentHasAssignedTechnician(inc)) {
+                alert('Esta incidencia ya tiene un técnico asignado.');
+                return;
+            }
 
             content.innerHTML = `
                 <div class="space-y-6 fade-in relative">
@@ -455,8 +547,12 @@
                     <h2 class="text-xl font-bold">Asignar Técnico</h2>
                     <div class="bg-blue-50 p-4 rounded-xl border border-blue-100"><p class="text-sm font-bold">${inc.title}</p></div>
                     <div class="space-y-2">
-                        ${tecnicos.map(t => `
-                            <div onclick="confirmarAsignacionT('${id}', '${t.nombre}')" class="flex items-center justify-between p-4 border rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer group transition-all">
+                        ${tecnicos.length === 0 ? `
+                            <div class="p-4 border rounded-xl bg-gray-50 text-sm text-gray-600">
+                                No hay técnicos activos disponibles para asignar.
+                            </div>
+                        ` : tecnicos.map(t => `
+                            <div onclick="confirmarAsignacionT('${id}', '${t.id}', '${(t.nombre || '').replace(/'/g, "\\'")}')" class="flex items-center justify-between p-4 border rounded-xl hover:border-blue-500 hover:bg-blue-50 cursor-pointer group transition-all">
                                 <div class="flex items-center gap-3"><div class="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold">${t.nombre.substring(0,2)}</div><div><p class="text-sm font-bold">${t.nombre}</p></div></div>
                                 <i data-lucide="user-check" class="w-4 h-4 text-transparent group-hover:text-blue-600"></i>
                             </div>
@@ -468,9 +564,41 @@
             lucide.createIcons();
         }
 
-        function confirmarAsignacionT(incId, tecNombre) {
+        async function confirmarAsignacionT(incId, tecId, tecNombre) {
             const index = incidenciasActuales.findIndex(i => i.id === incId);
+            if (index < 0) {
+                alert('No se encontro la incidencia seleccionada.');
+                return;
+            }
+
+            if (incidentHasAssignedTechnician(incidenciasActuales[index])) {
+                alert('Esta incidencia ya tiene un técnico asignado.');
+                closeModal();
+                return;
+            }
+
+            const numericIncidentId = Number(String(incId).replace('INC', ''));
+            const numericTechnicianId = Number(tecId);
+
+            if (window.incidentApi && typeof window.incidentApi.assignTechnician === 'function' && Number.isFinite(numericIncidentId) && Number.isFinite(numericTechnicianId)) {
+                try {
+                    await window.incidentApi.assignTechnician(numericIncidentId, numericTechnicianId);
+                    if (window.loadIncidentsFromApi) {
+                        await window.loadIncidentsFromApi();
+                    }
+                    await refreshIncidents();
+                    closeModal();
+                    renderApp();
+                    return;
+                } catch (error) {
+                    const detail = (error && error.message ? error.message : 'No se pudo asignar tecnico en servidor').trim();
+                    alert(detail);
+                    return;
+                }
+            }
+
             incidenciasActuales[index].assignedTechnician = tecNombre;
+            incidenciasActuales[index].assignedTechnicianId = Number.isFinite(numericTechnicianId) ? numericTechnicianId : null;
             incidenciasActuales[index].status = 'en-proceso';
             saveIncidents(incidenciasActuales);
             closeModal();
@@ -492,7 +620,7 @@
                     </div>
                     <div><p class="text-xs font-bold text-gray-400 uppercase mb-2">Descripción</p><p class="bg-gray-50 p-4 rounded-xl text-gray-600 text-sm border">${inc.description}</p></div>
                     <div class="flex gap-3">
-                        <button onclick="mostrarSelectorTecnicos('${inc.id}')" class="flex-1 bg-blue-600 text-white font-bold py-3 rounded-xl shadow-lg">Asignar Personal</button>
+                        <button onclick="mostrarSelectorTecnicos('${inc.id}')" ${incidentHasAssignedTechnician(inc) ? 'disabled' : ''} class="flex-1 font-bold py-3 rounded-xl shadow-lg ${incidentHasAssignedTechnician(inc) ? 'bg-green-100 text-green-700 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white'}">${incidentHasAssignedTechnician(inc) ? 'Ya asignada' : 'Asignar Personal'}</button>
                         <button onclick="closeModal()" class="flex-1 border font-bold py-3 rounded-xl hover:bg-gray-50">Cerrar</button>
                     </div>
                 </div>
@@ -543,7 +671,10 @@
             });
         }
 
-        window.onload = () => switchTab('dashboard');
+        window.onload = async () => {
+            await refreshIncidents();
+            switchTab('dashboard');
+        };
     </script>
 </body>
 

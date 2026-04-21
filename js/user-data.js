@@ -539,6 +539,101 @@ function getIncidentMapUrl(incident) {
   return 'https://www.google.com/maps';
 }
 
+function normalizeApiIncident(item) {
+  const parsedId = Number(item && item.id);
+  return {
+    id: Number.isFinite(parsedId) ? `INC${String(parsedId).padStart(3, '0')}` : String(item && item.id ? item.id : ''),
+    title: item && item.title ? item.title : 'Incidencia',
+    category: item && item.category ? item.category : 'General',
+    description: item && item.description ? item.description : '',
+    location: item && item.location ? item.location : '',
+    status: item && item.status ? item.status : 'pendiente',
+    priority: item && item.priority ? item.priority : 'media',
+    createdAt: item && item.createdAt ? item.createdAt : new Date().toISOString(),
+    reportDate: item && item.createdAt ? item.createdAt.slice(0, 10) : new Date().toISOString().slice(0, 10),
+    assignedDate: null,
+    citizenName: item && item.citizenName ? item.citizenName : 'Ciudadano',
+    citizenEmail: '',
+    citizenPhone: '',
+    assignedTechnician: item && item.assignedTechnician ? item.assignedTechnician : null,
+    assignedTechnicianId: item && item.assignedTechnicianId ? Number(item.assignedTechnicianId) : null,
+    technicianComments: [],
+    actions: Array.isArray(item && item.actions) ? item.actions : [],
+    statusHistory: Array.isArray(item && item.statusHistory)
+      ? item.statusHistory
+      : [{ id: 'H1', status: item && item.status ? item.status : 'pendiente', date: item && item.createdAt ? item.createdAt : new Date().toISOString(), comment: 'Incidencia registrada.' }]
+  };
+}
+
+function getCurrentSessionEmail() {
+  try {
+    const fromLocal = localStorage.getItem('urbanHelpSession');
+    const fromSession = sessionStorage.getItem('urbanHelpSession');
+    const raw = fromLocal || fromSession;
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw);
+    const email = parsed && typeof parsed.email === 'string' ? parsed.email.trim().toLowerCase() : '';
+    return email || null;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveCurrentUserId() {
+  const sessionEmail = getCurrentSessionEmail();
+  if (!sessionEmail || !window.userApi || typeof window.userApi.getByEmail !== 'function') {
+    return null;
+  }
+
+  try {
+    const user = await window.userApi.getByEmail(sessionEmail);
+    if (!user || typeof user.id !== 'number') return null;
+    return user.id;
+  } catch {
+    return null;
+  }
+}
+
+function normalizeFrontendIncidentForApi(incident, userId) {
+  return {
+    title: incident && incident.title ? incident.title : '',
+    description: incident && incident.description ? incident.description : '',
+    location: incident && incident.location ? incident.location : '',
+    category: incident && incident.category ? incident.category : 'limpieza',
+    priority: incident && incident.priority ? incident.priority : 'media',
+    userId: userId || (incident && incident.userId ? incident.userId : 1)
+  };
+}
+
+async function loadIncidentsFromApi() {
+  if (!window.incidentApi || typeof window.incidentApi.list !== 'function') return null;
+
+  try {
+    const apiIncidents = await window.incidentApi.list();
+    if (!Array.isArray(apiIncidents)) return null;
+
+    const normalized = apiIncidents.map(normalizeApiIncident);
+    saveIncidents(normalized);
+    return normalized;
+  } catch {
+    return null;
+  }
+}
+
+async function createIncidentInApi(incident) {
+  if (!window.incidentApi || typeof window.incidentApi.create !== 'function') return null;
+
+  try {
+    const currentUserId = await resolveCurrentUserId();
+    const created = await window.incidentApi.create(normalizeFrontendIncidentForApi(incident, currentUserId));
+    if (!created) return null;
+    return normalizeApiIncident(created);
+  } catch {
+    return null;
+  }
+}
+
 try {
   window.mockIncidents = getIncidents();
 } catch {
@@ -547,6 +642,8 @@ try {
 window.getIncidents = getIncidents;
 window.saveIncidents = saveIncidents;
 window.addIncident = addIncident;
+window.loadIncidentsFromApi = loadIncidentsFromApi;
+window.createIncidentInApi = createIncidentInApi;
 window.getIncidentMapUrl = getIncidentMapUrl;
 window.getTechnicianRequests = getTechnicianRequests;
 window.addTechnicianRequest = addTechnicianRequest;

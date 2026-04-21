@@ -27,7 +27,11 @@ function statCard(title, value, valueColor, iconName, iconWrapClass, iconClass) 
 /**
  * Función principal de renderizado
  */
-function render() {
+async function render() {
+    if (window.loadIncidentsFromApi) {
+        await window.loadIncidentsFromApi();
+    }
+
     // Verificamos que mockIncidents exista (viene de user-data.js)
     const incidents = window.mockIncidents || [];
 

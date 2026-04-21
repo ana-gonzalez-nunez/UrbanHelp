@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi Perfil Tecnico</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
+
+  <link rel="stylesheet" href="./css/style_app.css">
+</head>
+<body class="min-h-screen bg-gradient-to-br from-slate-50 via-indigo-50/30 to-blue-50/40">
+  <div class="bg-white/90 backdrop-blur border-b border-slate-200/70 shadow-sm">
+  <base href="http://localhost:8081/">
+    <div class="max-w-5xl mx-auto px-4 py-8">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900">Mi Perfil Tecnico</h1>
+          <p class="text-slate-600 mt-2">Consulta y actualiza tus datos profesionales y de contacto</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <a href="tecnico.html"
+            class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2.5 rounded-xl font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+            Ir al Panel
+          </a>
+
+          <button id="logoutBtn"
+            class="inline-flex items-center gap-2 bg-white text-red-600 border border-red-200 px-4 py-2.5 rounded-xl font-semibold shadow-sm hover:bg-red-50 transition-colors">
+            <i data-lucide="log-out" class="w-4 h-4"></i>
+            Salir
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="max-w-5xl mx-auto px-4 py-8 space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4" id="profileStats"></div>
+
+    <form id="techProfileForm" class="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm">
+      <h2 class="text-xl font-semibold text-slate-900 mb-6">Datos del tecnico</h2>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Nombre completo</label>
+          <input id="fullName" type="text" readonly class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-slate-100 text-slate-500 cursor-not-allowed">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Rol</label>
+          <input id="role" type="text" readonly class="w-full px-3 py-2 rounded-xl border border-slate-300 bg-slate-100 text-slate-500 cursor-not-allowed">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Correo electronico</label>
+          <input id="email" type="email" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300" required>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Telefono</label>
+          <input id="phone" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Licencia</label>
+          <input id="licenseNumber" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Departamento</label>
+          <input id="department" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Especialidad</label>
+          <input id="specialty" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Zona asignada</label>
+          <input id="assignedZone" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Turno</label>
+          <select id="shift" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="Manana">Manana</option>
+            <option value="Tarde">Tarde</option>
+            <option value="Noche">Noche</option>
+            <option value="Rotativo">Rotativo</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Disponibilidad</label>
+          <select id="availability" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+            <option value="Disponible">Disponible</option>
+            <option value="Ocupado">Ocupado</option>
+            <option value="De guardia">De guardia</option>
+            <option value="No disponible">No disponible</option>
+          </select>
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Direccion</label>
+          <input id="address" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Codigo postal</label>
+          <input id="postalCode" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Ciudad</label>
+          <input id="city" type="text" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300">
+        </div>
+
+        <div class="md:col-span-2">
+          <label class="block text-sm font-medium text-slate-700 mb-1">Observaciones</label>
+          <textarea id="internalNotes" rows="4" class="w-full px-3 py-2 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
+        </div>
+
+        <div class="flex items-center gap-2 mt-2 md:col-span-2">
+          <input id="notificationsEnabled" type="checkbox" class="w-4 h-4 rounded border-slate-300">
+          <label for="notificationsEnabled" class="text-sm text-slate-700">Recibir notificaciones de incidencias asignadas</label>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button type="submit" class="inline-flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm hover:bg-indigo-700 transition-colors">
+          <i data-lucide="save" class="w-4 h-4"></i>
+          Guardar perfil
+        </button>
+        <button type="button" id="resetTechProfile" class="inline-flex items-center gap-2 bg-white text-slate-700 border border-slate-300 px-5 py-2.5 rounded-xl font-semibold shadow-sm hover:bg-slate-50 transition-colors">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          Restablecer
+        </button>
+      </div>
+
+      <p id="saveMessage" class="mt-4 text-sm text-emerald-700 hidden">Perfil tecnico guardado correctamente.</p>
+    </form>
+  </div>
+
+  <script src="./js/api-client.js"></script>
+  <script src="./js/user-data.js"></script>
+  <script src="./js/logout-modal.js"></script>
+  <script src="./js/script-tecnico_perfil.js"></script>
+</body>
+</html>

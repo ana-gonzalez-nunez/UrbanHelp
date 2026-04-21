@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <base href="http://localhost:8081/">
     <title>Iniciar sesión | UrbanHelp</title>
     <link rel="stylesheet" href="./css/style_login.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -94,6 +95,7 @@
         </div>
     </div>
 
+    <script src="./js/api-client.js"></script>
     <script src="./js/user-data.js"></script>
     <script>
         const loginForm = document.getElementById('loginForm');
@@ -113,24 +115,6 @@
         function showMessage(message, type) {
             loginMessage.textContent = message;
             loginMessage.className = `login-message ${type ? `is-${type}` : ''}`;
-        }
-
-        function inferRole(email) {
-            const normalized = email.trim().toLowerCase();
-
-            if (window.isTechnicianApproved && window.isTechnicianApproved(normalized)) {
-                return 'tecnico';
-            }
-
-            if (normalized.includes('admin')) {
-                return 'admin';
-            }
-
-            if (normalized.includes('tecnico') || normalized.includes('tech')) {
-                return 'tecnico';
-            }
-
-            return 'user';
         }
 
         function saveSession(role, email) {
@@ -168,13 +152,11 @@
                 : '<i class="fa-regular fa-eye" aria-hidden="true"></i>';
         });
 
-        loginForm.addEventListener('submit', (event) => {
+        loginForm.addEventListener('submit', async (event) => {
             event.preventDefault();
 
             const email = emailInput.value.trim();
             const password = passwordInput.value.trim();
-            const normalizedEmail = email.toLowerCase();
-
             if (!email || !password) {
                 showMessage('Introduce tu correo y tu contraseña.', 'error');
                 return;
@@ -185,21 +167,28 @@
                 return;
             }
 
-            const requestStatus = window.getTechnicianRequestStatus
-                ? window.getTechnicianRequestStatus(normalizedEmail)
-                : null;
+            let role = 'user';
 
-            if (requestStatus === 'pendiente') {
-                showMessage('Tu solicitud de técnico sigue pendiente de aprobación por el administrador.', 'error');
+            try {
+                if (window.userApi && typeof window.userApi.login === 'function') {
+                    const loginResponse = await window.userApi.login({
+                        email,
+                        contrasena: password
+                    });
+                    role = loginResponse.role || 'user';
+                }
+            } catch (error) {
+                const details = (error && error.message ? error.message : '').toLowerCase();
+                if (details.includes('pendiente')) {
+                    showMessage('Tu solicitud de técnico sigue pendiente de aprobación por el administrador.', 'error');
+                } else if (details.includes('401') || details.includes('credenciales')) {
+                    showMessage('Correo o contraseña incorrectos.', 'error');
+                } else {
+                    showMessage('No se pudo iniciar sesión. Inténtalo de nuevo.', 'error');
+                }
                 return;
             }
 
-            if (requestStatus === 'rechazada') {
-                showMessage('Tu solicitud de técnico ha sido rechazada. Contacta con administración.', 'error');
-                return;
-            }
-
-            const role = inferRole(email);
             saveSession(role, email);
             showMessage('Acceso correcto. Redirigiendo…', 'success');
 

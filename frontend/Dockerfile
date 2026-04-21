@@ -17,4 +17,4 @@ COPY css /usr/share/nginx/html/css
 COPY js /usr/share/nginx/html/js
 COPY Imganes /usr/share/nginx/html/Imganes
 
-EXPOSE 80
+EXPOSE 8081
