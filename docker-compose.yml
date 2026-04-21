@@ -1,17 +1,20 @@
 services:
+
   db:
     image: mysql:8.0
     container_name: proyectos2-db
     environment:
-      MYSQL_DATABASE: UrbanHelp
+      MYSQL_DATABASE:      UrbanHelp
       MYSQL_ROOT_PASSWORD: postgres
-      MYSQL_USER: postgres
-      MYSQL_PASSWORD: postgres
+      MYSQL_USER:          postgres
+      MYSQL_PASSWORD:      postgres
     ports:
       - "3307:3306"
     volumes:
       - postgres-data:/var/lib/mysql
       - ./bbdd.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      # Tema 2: configuración del servidor MySQL (slow log, binlog, etc.)
+      - ./mysql/conf.d:/etc/mysql/conf.d:ro
     healthcheck:
       test: ["CMD-SHELL", "mysqladmin ping -h localhost -u postgres -ppostgres"]
       interval: 10s
@@ -20,14 +23,14 @@ services:
 
   backend:
     build:
-      context: ./backend
+      context:    ./backend
       dockerfile: Dockerfile
     container_name: proyectos2-backend
     environment:
-      MYSQL_USER: root
+      MYSQL_USER:     root
       MYSQL_PASSWORD: postgres
-      MYSQL_HOST: db
-      MYSQL_PORT: 3306
+      MYSQL_HOST:     db
+      MYSQL_PORT:     3306
       MYSQL_DATABASE: UrbanHelp
     depends_on:
       db:
@@ -37,7 +40,7 @@ services:
 
   frontend:
     build:
-      context: .
+      context:    .
       dockerfile: frontend/Dockerfile
     container_name: proyectos2-frontend
     depends_on:
@@ -45,5 +48,46 @@ services:
     ports:
       - "8081:8081"
 
+  # ── TEMA 7: MONITORIZACIÓN ─────────────────────────────────
+  # Exportador de métricas MySQL para Prometheus
+  mysqld-exporter:
+    image: prom/mysqld-exporter:latest
+    container_name: proyectos2-exporter
+    environment:
+      DATA_SOURCE_NAME: "exporter:ExporterPass_2024!@(db:3306)/"
+    ports:
+      - "9104:9104"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # Motor de métricas en serie temporal
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: proyectos2-prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    depends_on:
+      - mysqld-exporter
+
+  # Dashboard visual (acceder en http://localhost:3000, usuario: admin / admin)
+  # Para ver métricas de MySQL importar el dashboard ID 7362 desde Grafana
+  grafana:
+    image: grafana/grafana:latest
+    container_name: proyectos2-grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+
 volumes:
   postgres-data:
+  prometheus-data:
+  grafana-data:

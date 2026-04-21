@@ -1,219 +1,629 @@
+-- ============================================================
+-- UrbanHelp - Base de Datos
+-- ============================================================
+-- Proyecto: Aplicación de gestión de incidencias urbanas
+-- Backend:  FastAPI + SQLAlchemy + PyMySQL (Python)
+-- ============================================================
+-- Mejoras aplicadas por tema del temario:
+--   Tema 2 → Configuración del servidor: ver mysql/conf.d/custom.cnf
+--   Tema 3 → Usuarios MySQL con permisos separados por función
+--   Tema 4 → Campos de auditoría (created_at/updated_at), índices,
+--             índice compuesto Estado+FechaCreacion, vistas útiles
+--   Tema 5 → Stored procedures (sp_cambiar_estado, sp_asignar_tecnico,
+--             sp_estadisticas_tecnico) y triggers (auditoría automática,
+--             validación de email, cierre de incidencias)
+--   Tema 6 → Binary log activado (ver custom.cnf) + script backup.sh
+--   Tema 7 → Monitorización: ver docker-compose.yml (Prometheus+Grafana)
+-- ============================================================
 
-CREATE DATABASE IF NOT EXISTS UrbanHelp;
+CREATE DATABASE IF NOT EXISTS UrbanHelp
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_0900_ai_ci;
+
 USE UrbanHelp;
 
--- ROL --
+-- ============================================================
+-- TEMA 3: USUARIOS MYSQL Y PERMISOS
+-- Principio de mínimo privilegio: cada cuenta solo tiene lo que necesita
+-- ============================================================
+
+-- Cuenta para la aplicación FastAPI (solo CRUD, sin DDL)
+CREATE USER IF NOT EXISTS 'urbanhelp_app'@'%'
+  IDENTIFIED WITH caching_sha2_password BY 'AppPass_2024!';
+GRANT SELECT, INSERT, UPDATE, DELETE ON UrbanHelp.* TO 'urbanhelp_app'@'%';
+
+-- Cuenta de solo lectura para reportes / consultas externas
+CREATE USER IF NOT EXISTS 'urbanhelp_reader'@'%'
+  IDENTIFIED WITH caching_sha2_password BY 'ReaderPass_2024!';
+GRANT SELECT ON UrbanHelp.* TO 'urbanhelp_reader'@'%';
+
+-- Cuenta para backups (mysqldump desde localhost)
+CREATE USER IF NOT EXISTS 'urbanhelp_backup'@'localhost'
+  IDENTIFIED WITH caching_sha2_password BY 'BackupPass_2024!';
+GRANT SELECT, LOCK TABLES, SHOW VIEW, EVENT, TRIGGER ON UrbanHelp.* TO 'urbanhelp_backup'@'localhost';
+
+-- Cuenta para mysqld_exporter (Prometheus - Tema 7)
+CREATE USER IF NOT EXISTS 'exporter'@'localhost'
+  IDENTIFIED WITH caching_sha2_password BY 'ExporterPass_2024!'
+  WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT, SELECT ON *.* TO 'exporter'@'localhost';
+
+FLUSH PRIVILEGES;
+
+-- ============================================================
+-- TABLA: Rol
+-- ============================================================
 CREATE TABLE Rol (
-    IdRol INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre VARCHAR(50) NOT NULL,
-    Descripcion VARCHAR(200)
-);
+    IdRol        INT AUTO_INCREMENT PRIMARY KEY,
+    Nombre       VARCHAR(50)  NOT NULL,
+    Descripcion  VARCHAR(200),
+    -- Tema 4: campos de auditoría automáticos
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
 
 INSERT INTO Rol (IdRol, Nombre, Descripcion) VALUES
-(1, 'Ciudadano', 'Usuario que reporta incidencias'),
-(2, 'Tecnico', 'Empleado que realiza reparaciones'),
-(3, 'Gestor', 'Supervisa incidencias y asignaciones'),
+(1, 'Ciudadano',     'Usuario que reporta incidencias'),
+(2, 'Tecnico',       'Empleado que realiza reparaciones'),
+(3, 'Gestor',        'Supervisa incidencias y asignaciones'),
 (4, 'Administrador', 'Control total del sistema'),
-(5, 'Supervisor', 'Controla calidad de actuaciones'),
-(6, 'Operador', 'Atiende incidencias iniciales'),
-(7, 'Inspector', 'Revisa incidencias en campo');
+(5, 'Supervisor',    'Controla calidad de actuaciones'),
+(6, 'Operador',      'Atiende incidencias iniciales'),
+(7, 'Inspector',     'Revisa incidencias en campo');
 
-
--- SERVICIO --
+-- ============================================================
+-- TABLA: Servicio
+-- ============================================================
 CREATE TABLE Servicio (
-    IdServicio INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre VARCHAR(100) NOT NULL,
-    Ubicacion VARCHAR(150),
-    Telefono VARCHAR(20),
-    tipoServicio VARCHAR(50)
-);
+    IdServicio    INT AUTO_INCREMENT PRIMARY KEY,
+    Nombre        VARCHAR(100) NOT NULL,
+    Ubicacion     VARCHAR(150),
+    Telefono      VARCHAR(20),
+    tipoServicio  VARCHAR(50),
+    -- Tema 4: auditoría
+    created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
 
 INSERT INTO Servicio (IdServicio, Nombre, Ubicacion, Telefono, tipoServicio) VALUES
-(1, 'Alumbrado Público', 'Calle Industria 12', '958111001', 'Electricidad'),
-(2, 'Limpieza Urbana', 'Polígono Norte 5', '958111002', 'Limpieza'),
-(3, 'Mantenimiento Vial', 'Av. Andalucía 45', '958111003', 'Infraestructura'),
-(4, 'Parques y Jardines', 'Camino Verde 8', '958111004', 'Zonas Verdes'),
-(5, 'Señalización', 'Calle Tráfico 22', '958111005', 'Seguridad Vial'),
-(6, 'Aguas Municipales', 'Av. del Río 9', '958111006', 'Saneamiento'),
-(7, 'Mobiliario Urbano', 'Calle Centro 3', '958111007', 'Equipamiento');
+(1, 'Alumbrado Público',  'Calle Industria 12', '958111001', 'Electricidad'),
+(2, 'Limpieza Urbana',    'Polígono Norte 5',   '958111002', 'Limpieza'),
+(3, 'Mantenimiento Vial', 'Av. Andalucía 45',   '958111003', 'Infraestructura'),
+(4, 'Parques y Jardines', 'Camino Verde 8',      '958111004', 'Zonas Verdes'),
+(5, 'Señalización',       'Calle Tráfico 22',   '958111005', 'Seguridad Vial'),
+(6, 'Aguas Municipales',  'Av. del Río 9',       '958111006', 'Saneamiento'),
+(7, 'Mobiliario Urbano',  'Calle Centro 3',      '958111007', 'Equipamiento');
 
-
--- USUARIO --
+-- ============================================================
+-- TABLA: Usuario
+-- ============================================================
 CREATE TABLE Usuario (
-    IdUsuario INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre VARCHAR(100) NOT NULL,
-    Apellido1 VARCHAR(100) NOT NULL,
-    Apellido2 VARCHAR(100) NOT NULL,
-    Email VARCHAR(150) NOT NULL UNIQUE,
-    Contrasena VARCHAR(255) NOT NULL,
-    Telefono VARCHAR(20),
-    FechaRegistro DATETIME DEFAULT CURRENT_TIMESTAMP,
-    EstadoCuenta BOOLEAN DEFAULT TRUE,
-    /*rol ENUM('Ciudadano','Tecnico','Administrador') NOT NULL,*/
-    IdRol INT NOT NULL, 
-    IdServicio INT NULL,
+    IdUsuario     INT          AUTO_INCREMENT PRIMARY KEY,
+    Nombre        VARCHAR(100) NOT NULL,
+    Apellido1     VARCHAR(100) NOT NULL,
+    Apellido2     VARCHAR(100) NOT NULL DEFAULT '',
+    Email         VARCHAR(150) NOT NULL UNIQUE,
+    Contrasena    VARCHAR(255) NOT NULL,
+    Telefono      VARCHAR(20),
+    FechaRegistro DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    EstadoCuenta  BOOLEAN      NOT NULL DEFAULT TRUE,
+    IdRol         INT          NOT NULL,
+    IdServicio    INT          NULL,
+    -- Tema 4: auditoría
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
-    CONSTRAINT FK_Usuario_Servicio FOREIGN KEY (IdServicio) REFERENCES Servicio(IdServicio),
-    CONSTRAINT FK_Usuario_Rol FOREIGN KEY (IdRol) REFERENCES Rol(IdRol)
-);
+    CONSTRAINT FK_Usuario_Rol
+        FOREIGN KEY (IdRol) REFERENCES Rol(IdRol)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT FK_Usuario_Servicio
+        FOREIGN KEY (IdServicio) REFERENCES Servicio(IdServicio)
+        ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB;
 
-
+-- Tema 4: índices para búsquedas frecuentes desde el backend
+-- El backend filtra por IdRol (listar técnicos, listar admins)
+-- y por EstadoCuenta (solicitudes pendientes de aprobación)
+CREATE INDEX idx_usuario_rol      ON Usuario(IdRol);
+CREATE INDEX idx_usuario_servicio ON Usuario(IdServicio);
+CREATE INDEX idx_usuario_estado   ON Usuario(EstadoCuenta);
 
 INSERT INTO Usuario (IdUsuario, Nombre, Apellido1, Apellido2, Email, Contrasena, Telefono, FechaRegistro, EstadoCuenta, IdRol, IdServicio)
 VALUES
-(1, 'Carlos', 'Martínez', 'López', 'carlos.martinez@email.com', '1234', '600111111', '2024-03-15', 1, 1, NULL),
-(2, 'Lucía', 'Fernández', 'Ruiz', 'lucia.fernandez@email.com', '1234', '600222222', '2024-05-20', 1, 1, NULL),
-(3, 'Miguel', 'García', 'Santos', 'miguel.garcia@email.com', '1234', '600333333', '2024-09-01', 1, 2, 1),
-(4, 'Ana', 'Torres', 'Vega', 'ana.torres@email.com', '1234', '600444444', '2025-01-10', 1, 2, 2),
-(5, 'Pedro', 'López', 'Jiménez', 'pedro.lopez@email.com', '1234', '600555555', '2025-06-18', 1, 1, NULL),
-(6, 'Elena', 'Sánchez', 'Morales', 'elena.sanchez@email.com', '1234', '600666666', '2025-09-22', 1, 2, 3),
-(7, 'Javier', 'Romero', 'Castro', 'javier.romero@email.com', '1234', '600777777', '2026-01-05', 1, 4, NULL),
-(8, 'Usuario', 'Demo', '-', 'user@urbanhelp.es', '123456', '600000001', '2026-04-11', 1, 1, NULL),
-(9, 'Tecnico', 'Demo', '-', 'tecnico@urbanhelp.es', '123456', '600000002', '2026-04-11', 1, 2, 1),
-(10, 'Admin', 'Demo', '-', 'admin@urbanhelp.es', '123456', '600000003', '2026-04-11', 1, 4, NULL);
+(1,  'Carlos',  'Martínez', 'López',   'carlos.martinez@email.com', '1234',   '600111111', '2024-03-15', 1, 1, NULL),
+(2,  'Lucía',   'Fernández','Ruiz',    'lucia.fernandez@email.com',  '1234',   '600222222', '2024-05-20', 1, 1, NULL),
+(3,  'Miguel',  'García',   'Santos',  'miguel.garcia@email.com',    '1234',   '600333333', '2024-09-01', 1, 2, 1),
+(4,  'Ana',     'Torres',   'Vega',    'ana.torres@email.com',       '1234',   '600444444', '2025-01-10', 1, 2, 2),
+(5,  'Pedro',   'López',    'Jiménez', 'pedro.lopez@email.com',      '1234',   '600555555', '2025-06-18', 1, 1, NULL),
+(6,  'Elena',   'Sánchez',  'Morales', 'elena.sanchez@email.com',    '1234',   '600666666', '2025-09-22', 1, 2, 3),
+(7,  'Javier',  'Romero',   'Castro',  'javier.romero@email.com',    '1234',   '600777777', '2026-01-05', 1, 4, NULL),
+-- Usuarios demo del proyecto (usados en el frontend para pruebas)
+(8,  'Usuario', 'Demo',     '-',       'user@urbanhelp.es',          '123456', '600000001', '2026-04-11', 1, 1, NULL),
+(9,  'Tecnico', 'Demo',     '-',       'tecnico@urbanhelp.es',       '123456', '600000002', '2026-04-11', 1, 2, 1),
+(10, 'Admin',   'Demo',     '-',       'admin@urbanhelp.es',         '123456', '600000003', '2026-04-11', 1, 4, NULL);
 
-
--- CATEGORIA --
+-- ============================================================
+-- TABLA: Categoria
+-- ============================================================
 CREATE TABLE Categoria (
-    IdCategoria INT AUTO_INCREMENT PRIMARY KEY,
-    Nombre VARCHAR(100) NOT NULL,
-    Descripcion VARCHAR(200)
-);
+    IdCategoria  INT AUTO_INCREMENT PRIMARY KEY,
+    Nombre       VARCHAR(100) NOT NULL,
+    Descripcion  VARCHAR(200),
+    -- Tema 4: auditoría
+    created_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at   DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB;
 
 INSERT INTO Categoria (IdCategoria, Nombre, Descripcion) VALUES
-(1, 'Alumbrado', 'Problemas en farolas o iluminación pública'),
-(2, 'Limpieza', 'Suciedad o acumulación de residuos'),
-(3, 'Baches', 'Deterioro del asfalto'),
-(4, 'Parques', 'Incidencias en zonas verdes'),
+(1, 'Alumbrado',    'Problemas en farolas o iluminación pública'),
+(2, 'Limpieza',     'Suciedad o acumulación de residuos'),
+(3, 'Baches',       'Deterioro del asfalto'),
+(4, 'Parques',      'Incidencias en zonas verdes'),
 (5, 'Señalización', 'Problemas en señales de tráfico'),
-(6, 'Agua', 'Fugas o problemas de saneamiento'),
-(7, 'Mobiliario', 'Bancos, papeleras o elementos dañados');
+(6, 'Agua',         'Fugas o problemas de saneamiento'),
+(7, 'Mobiliario',   'Bancos, papeleras o elementos dañados');
 
-
--- INCIDENCIA --
+-- ============================================================
+-- TABLA: Incidencia
+-- ============================================================
+-- NOTA: El backend (incidents.py) usa el estado 'Solucionada', no 'Denegada',
+-- por eso el ENUM es idéntico al original para no romper el backend.
 CREATE TABLE Incidencia (
-    IdIncidencia INT AUTO_INCREMENT PRIMARY KEY,
-    Titulo VARCHAR(150) NOT NULL,
-    Descripcion TEXT NOT NULL,
-    FechaCreacion DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FechaCierre DATETIME NULL,
-    Prioridad ENUM('Baja','Media','Urgente') NOT NULL,
-    Direccion VARCHAR(200),    
-    IdUsuarioCreador INT NOT NULL,
-    IdCategoria INT NOT NULL,
-    IdServicio INT NULL,
-    IdTecnicoAsignado INT NULL,
-    Estado ENUM('Pendiente','Asignada','En proceso','Solucionada') NOT NULL,
-(7, 'Limpieza grafiti', 'Grafiti en fachada municipal', '2026-02-01', NULL, 'Pendiente', 'Media', 'Plaza España 4', 1, 2,\t2, 4);
-
+    IdIncidencia      INT  AUTO_INCREMENT PRIMARY KEY,
+    Titulo            VARCHAR(150) NOT NULL,
+    Descripcion       TEXT         NOT NULL,
+    FechaCreacion     DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FechaCierre       DATETIME     NULL,
+    Prioridad         ENUM('Baja','Media','Urgente') NOT NULL,
+    Direccion         VARCHAR(200),
+    IdUsuarioCreador  INT          NOT NULL,
+    IdCategoria       INT          NOT NULL,
+    IdServicio        INT          NULL,
+    IdTecnicoAsignado INT          NULL,
+    Estado            ENUM('Pendiente','Asignada','En proceso','Solucionada') NOT NULL DEFAULT 'Pendiente',
+    -- Tema 4: auditoría
+    created_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at        DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT FK_Incidencia_UsuarioCreador
-        FOREIGN KEY (IdUsuarioCreador) REFERENCES Usuario(IdUsuario),
-
+        FOREIGN KEY (IdUsuarioCreador) REFERENCES Usuario(IdUsuario)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT FK_Incidencia_Categoria
-        FOREIGN KEY (IdCategoria) REFERENCES Categoria(IdCategoria),
-
+        FOREIGN KEY (IdCategoria) REFERENCES Categoria(IdCategoria)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT FK_Incidencia_Servicio
-        FOREIGN KEY (IdServicio) REFERENCES Servicio(IdServicio),
-
+        FOREIGN KEY (IdServicio) REFERENCES Servicio(IdServicio)
+        ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT FK_Incidencia_Tecnico
         FOREIGN KEY (IdTecnicoAsignado) REFERENCES Usuario(IdUsuario)
-);
+        ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB;
 
-INSERT INTO Incidencia(IdIncidencia, Titulo, Descripcion, FechaCreacion, FechaCierre, Estado, Prioridad, Direccion,
-IdUsuarioCreador, IdCategoria, IdServicio, IdTecnicoAsignado)
+-- Tema 4: índices
+-- El backend filtra incidencias por estado frecuentemente (list_incidents, etc.)
+-- El índice compuesto cubre la query más común: filtrar por estado y ordenar por fecha
+CREATE INDEX idx_incidencia_estado       ON Incidencia(Estado);
+CREATE INDEX idx_incidencia_creador      ON Incidencia(IdUsuarioCreador);
+CREATE INDEX idx_incidencia_tecnico      ON Incidencia(IdTecnicoAsignado);
+CREATE INDEX idx_incidencia_estado_fecha ON Incidencia(Estado, FechaCreacion DESC);
+
+INSERT INTO Incidencia (IdIncidencia, Titulo, Descripcion, FechaCreacion, FechaCierre, Estado, Prioridad, Direccion, IdUsuarioCreador, IdCategoria, IdServicio, IdTecnicoAsignado)
 VALUES
-(1, 'Farola apagada', 'Farola sin funcionamiento desde hace 3 días', '2024-06-01', '2024-06-03', 'Solucionada', 'Urgente', 'Calle Mayor 15', 1, 1, 1, 3),
-(2, 'Bache en avenida', 'Bache peligroso frente al colegio', '2024-10-12', NULL, 'En proceso', 'Urgente', 'Av. Andalucía 22', 2, 3, 3, 6),
-(3, 'Basura acumulada', 'Contenedor desbordado', '2025-02-18', '2025-02-20', 'Solucionada', 'Media', 'Calle Sol 8', 1, 2, 2, 4),
-(4, 'Banco roto', 'Banco partido en parque central', '2025-07-05', NULL, 'Asignada', 'Media', 'Parque Central', 2, 7, 7, NULL),
-(5, 'Fuga de agua', 'Agua saliendo de alcantarilla', '2025-11-11', NULL, 'En proceso', 'Urgente', 'Calle Río 3', 1, 6, 6, 6),
-(6, 'Señal caída', 'Señal de stop caída', '2026-01-20', NULL, 'Pendiente', 'Baja', 'Calle Norte 12', 2, 5, 5, NULL),
-(7, 'Limpieza grafiti', 'Grafiti en fachada municipal', '2026-02-01', NULL, 'Pendiente', 'Media', 'Plaza España 4', 1, 2,	2, 4);
+(1, 'Farola apagada',   'Farola sin funcionamiento desde hace 3 días', '2024-06-01', '2024-06-03', 'Solucionada', 'Urgente', 'Calle Mayor 15',   1, 1, 1, 3),
+(2, 'Bache en avenida', 'Bache peligroso frente al colegio',           '2024-10-12', NULL,          'En proceso',  'Urgente', 'Av. Andalucía 22', 2, 3, 3, 6),
+(3, 'Basura acumulada', 'Contenedor desbordado',                       '2025-02-18', '2025-02-20', 'Solucionada', 'Media',   'Calle Sol 8',      1, 2, 2, 4),
+(4, 'Banco roto',       'Banco partido en parque central',             '2025-07-05', NULL,          'Asignada',    'Media',   'Parque Central',   2, 7, 7, NULL),
+(5, 'Fuga de agua',     'Agua saliendo de alcantarilla',               '2025-11-11', NULL,          'En proceso',  'Urgente', 'Calle Río 3',      1, 6, 6, 6),
+(6, 'Señal caída',      'Señal de stop caída',                         '2026-01-20', NULL,          'Pendiente',   'Baja',    'Calle Norte 12',   2, 5, 5, NULL),
+(7, 'Limpieza grafiti', 'Grafiti en fachada municipal',                '2026-02-01', NULL,          'Pendiente',   'Media',   'Plaza España 4',   1, 2, 2, 4);
 
-
-
--- IMAGEN --
+-- ============================================================
+-- TABLA: Imagen
+-- ============================================================
 CREATE TABLE Imagen (
-    IdImagen INT AUTO_INCREMENT PRIMARY KEY,
-    RutaImagen VARCHAR(255) NOT NULL,
-    FechaSubida DATETIME DEFAULT CURRENT_TIMESTAMP,
-    IdIncidencia INT NOT NULL,
+    IdImagen     INT AUTO_INCREMENT PRIMARY KEY,
+    RutaImagen   VARCHAR(255) NOT NULL,
+    FechaSubida  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    IdIncidencia INT          NOT NULL,
 
     CONSTRAINT FK_Imagen_Incidencia
         FOREIGN KEY (IdIncidencia) REFERENCES Incidencia(IdIncidencia)
-);
+        ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Tema 4: índice para buscar imágenes por incidencia
+CREATE INDEX idx_imagen_incidencia ON Imagen(IdIncidencia);
 
 INSERT INTO Imagen (IdImagen, RutaImagen, FechaSubida, IdIncidencia) VALUES
-(1, '/imagenes/farola1.jpg', '2024-06-01', 1),
-(2, '/imagenes/bache1.jpg', '2024-10-12', 2),
-(3, '/imagenes/basura1.jpg', '2025-02-18', 3),
-(4, '/imagenes/banco1.jpg', '2025-07-05', 4),
-(5, '/imagenes/fuga1.jpg', '2025-11-11', 5),
-(6, '/imagenes/senal1.jpg', '2026-01-20', 6),
+(1, '/imagenes/farola1.jpg',  '2024-06-01', 1),
+(2, '/imagenes/bache1.jpg',   '2024-10-12', 2),
+(3, '/imagenes/basura1.jpg',  '2025-02-18', 3),
+(4, '/imagenes/banco1.jpg',   '2025-07-05', 4),
+(5, '/imagenes/fuga1.jpg',    '2025-11-11', 5),
+(6, '/imagenes/senal1.jpg',   '2026-01-20', 6),
 (7, '/imagenes/grafiti1.jpg', '2026-02-01', 7);
 
-
-
--- ACTUACION --
+-- ============================================================
+-- TABLA: Actuacion
+-- ============================================================
 CREATE TABLE Actuacion (
-    IdActuacion INT AUTO_INCREMENT PRIMARY KEY,
-    DescripcionTrabajo TEXT NOT NULL,
-    FechaInicio DATETIME,
-    FechaFin DATETIME,
+    IdActuacion          INT AUTO_INCREMENT PRIMARY KEY,
+    DescripcionTrabajo   TEXT         NOT NULL,
+    FechaInicio          DATETIME,
+    FechaFin             DATETIME,
     MaterialesUtilizados VARCHAR(300),
-    Observaciones VARCHAR(300),
-    IdIncidencia INT NOT NULL,
-    IdTecnico INT NOT NULL,
+    Observaciones        VARCHAR(300),
+    IdIncidencia         INT          NOT NULL,
+    IdTecnico            INT          NOT NULL,
+    -- Tema 4: auditoría
+    created_at           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at           DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
     CONSTRAINT FK_Actuacion_Incidencia
-        FOREIGN KEY (IdIncidencia) REFERENCES Incidencia(IdIncidencia),
-
+        FOREIGN KEY (IdIncidencia) REFERENCES Incidencia(IdIncidencia)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT FK_Actuacion_Tecnico
         FOREIGN KEY (IdTecnico) REFERENCES Usuario(IdUsuario)
-);
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
-INSERT INTO Actuacion
-(IdActuacion, DescripcionTrabajo, FechaInicio, FechaFin, MaterialesUtilizados, Observaciones,
-IdIncidencia, IdTecnico)
+CREATE INDEX idx_actuacion_incidencia ON Actuacion(IdIncidencia);
+CREATE INDEX idx_actuacion_tecnico    ON Actuacion(IdTecnico);
+
+INSERT INTO Actuacion (IdActuacion, DescripcionTrabajo, FechaInicio, FechaFin, MaterialesUtilizados, Observaciones, IdIncidencia, IdTecnico)
 VALUES
-(1, 'Reemplazo bombilla LED', '2024-06-02', '2024-06-03', 'Bombilla LED 50W', 'Funcionamiento restaurado', 1, 3),
-(2, 'Inspección y señalización provisional', '2024-10-13', NULL, 'Conos de seguridad', 'Pendiente asfaltado', 2, 6),
-(3, 'Retirada de residuos', '2025-02-19', '2025-02-20', 'Bolsa industrial', 'Zona limpia', 3, 4),
-(4, 'Revisión inicial banco', '2025-07-06', NULL, 'Ninguno', 'Pendiente sustitución', 4, 6),
-(5, 'Revisión fuga', '2025-11-12', NULL, 'Llave paso', 'Necesita maquinaria pesada', 5, 6),
-(6, 'Evaluación señal', '2026-01-21', NULL, 'Soporte metálico', 'En espera de reposición', 6, 3),
-(7, 'Limpieza grafiti', '2026-02-02', NULL, 'Disolvente especial', 'Parcialmente eliminado', 7, 4);
+(1, 'Reemplazo bombilla LED',               '2024-06-02', '2024-06-03', 'Bombilla LED 50W',   'Funcionamiento restaurado',   1, 3),
+(2, 'Inspección y señalización provisional','2024-10-13', NULL,          'Conos de seguridad', 'Pendiente asfaltado',         2, 6),
+(3, 'Retirada de residuos',                 '2025-02-19', '2025-02-20', 'Bolsa industrial',   'Zona limpia',                 3, 4),
+(4, 'Revisión inicial banco',               '2025-07-06', NULL,          'Ninguno',            'Pendiente sustitución',       4, 6),
+(5, 'Revisión fuga',                        '2025-11-12', NULL,          'Llave paso',         'Necesita maquinaria pesada',  5, 6),
+(6, 'Evaluación señal',                     '2026-01-21', NULL,          'Soporte metálico',   'En espera de reposición',     6, 3),
+(7, 'Limpieza grafiti',                     '2026-02-02', NULL,          'Disolvente especial','Parcialmente eliminado',      7, 4);
 
-
-
--- HISTORIAL ESTADO --
+-- ============================================================
+-- TABLA: HistorialEstado
+-- ============================================================
+-- Esta tabla registra cada cambio de estado de una incidencia.
+-- El backend (update_incident_status, assign_technician_to_incident)
+-- actualmente no la escribe directamente; el Trigger de más abajo
+-- la rellena automáticamente.
 CREATE TABLE HistorialEstado (
-    IdHistorial INT AUTO_INCREMENT PRIMARY KEY,
+    IdHistorial    INT AUTO_INCREMENT PRIMARY KEY,
     EstadoAnterior ENUM('Pendiente','Asignada','En proceso','Solucionada') NOT NULL,
-    EstadoNuevo ENUM('Pendiente','Asignada','En proceso','Solucionada') NOT NULL,
-    FechaCambio DATETIME DEFAULT CURRENT_TIMESTAMP,
-    Comentario VARCHAR(300),
-
-    IdIncidencia INT NOT NULL,
-    IdUsuario INT NOT NULL,
+    EstadoNuevo    ENUM('Pendiente','Asignada','En proceso','Solucionada') NOT NULL,
+    FechaCambio    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    Comentario     VARCHAR(300),
+    IdIncidencia   INT          NOT NULL,
+    IdUsuario      INT          NOT NULL,
 
     CONSTRAINT FK_Historial_Incidencia
-        FOREIGN KEY (IdIncidencia) REFERENCES Incidencia(IdIncidencia),
-
+        FOREIGN KEY (IdIncidencia) REFERENCES Incidencia(IdIncidencia)
+        ON UPDATE CASCADE ON DELETE RESTRICT,
     CONSTRAINT FK_Historial_Usuario
         FOREIGN KEY (IdUsuario) REFERENCES Usuario(IdUsuario)
-);
+        ON UPDATE CASCADE ON DELETE RESTRICT
+) ENGINE=InnoDB;
 
-INSERT INTO HistorialEstado
-(IdHistorial, EstadoAnterior, EstadoNuevo, FechaCambio, Comentario, IdIncidencia, IdUsuario)
+CREATE INDEX idx_historial_incidencia ON HistorialEstado(IdIncidencia);
+CREATE INDEX idx_historial_fecha      ON HistorialEstado(FechaCambio);
+
+INSERT INTO HistorialEstado (IdHistorial, EstadoAnterior, EstadoNuevo, FechaCambio, Comentario, IdIncidencia, IdUsuario)
 VALUES
-(1, 'Pendiente', 'En proceso', '2024-06-02', 'Asignada a técnico', 1, 5),
-(2, 'En proceso', 'Solucionada', '2024-06-03', 'Trabajo completado', 1, 3),
-(3, 'Pendiente', 'En proceso', '2024-10-13', 'Revisión iniciada', 2, 5),
-(4, 'Pendiente', 'Solucionada', '2025-02-20', 'Incidencia solucionada', 3, 4),
-(5, 'Pendiente', 'En proceso', '2025-11-12', 'Fuga en reparación', 5, 5),
-(6, 'Pendiente', 'En proceso', '2026-02-02', 'Grafiti en tratamiento', 7, 4),
-(7, 'En proceso', 'Pendiente', '2026-02-10', 'Pendiente confirmación', 7, 5);
+(1, 'Pendiente',  'En proceso',  '2024-06-02', 'Asignada a técnico',     1, 5),
+(2, 'En proceso', 'Solucionada', '2024-06-03', 'Trabajo completado',     1, 3),
+(3, 'Pendiente',  'En proceso',  '2024-10-13', 'Revisión iniciada',      2, 5),
+(4, 'Pendiente',  'Solucionada', '2025-02-20', 'Incidencia solucionada', 3, 4),
+(5, 'Pendiente',  'En proceso',  '2025-11-12', 'Fuga en reparación',     5, 5),
+(6, 'Pendiente',  'En proceso',  '2026-02-02', 'Grafiti en tratamiento', 7, 4),
+(7, 'En proceso', 'Pendiente',   '2026-02-10', 'Pendiente confirmación', 7, 5);
 
 
+-- ============================================================
+-- TEMA 4: VISTAS
+-- ============================================================
+
+-- Vista principal: une toda la información de incidencias en un solo objeto.
+-- El backend hace varios SELECT separados (Categoria, Usuario, Técnico)
+-- para construir la respuesta JSON; esta vista hace esas 3 joins de una vez,
+-- útil para reportes, dashboards o queries manuales del administrador.
+CREATE VIEW v_incidencias_detalle AS
+SELECT
+    i.IdIncidencia,
+    i.Titulo,
+    i.Descripcion,
+    i.Estado,
+    i.Prioridad,
+    i.Direccion,
+    i.FechaCreacion,
+    i.FechaCierre,
+    c.Nombre                                      AS Categoria,
+    s.Nombre                                      AS Servicio,
+    CONCAT(u.Nombre, ' ', u.Apellido1)            AS Ciudadano,
+    CONCAT_WS(' ', t.Nombre, t.Apellido1)         AS Tecnico
+FROM Incidencia i
+JOIN Categoria  c ON i.IdCategoria       = c.IdCategoria
+JOIN Usuario    u ON i.IdUsuarioCreador  = u.IdUsuario
+LEFT JOIN Servicio s ON i.IdServicio     = s.IdServicio
+LEFT JOIN Usuario  t ON i.IdTecnicoAsignado = t.IdUsuario;
+
+-- Vista: técnicos activos con su servicio (usada por el frontend de asignación)
+CREATE VIEW v_tecnicos_activos AS
+SELECT
+    u.IdUsuario,
+    CONCAT(u.Nombre, ' ', u.Apellido1)  AS NombreCompleto,
+    u.Email,
+    u.Telefono,
+    s.Nombre                             AS Servicio,
+    s.tipoServicio
+FROM Usuario  u
+JOIN Rol      r ON u.IdRol      = r.IdRol
+LEFT JOIN Servicio s ON u.IdServicio = s.IdServicio
+WHERE r.Nombre = 'Tecnico'
+  AND u.EstadoCuenta = TRUE;
+
+-- Vista: resumen de incidencias por estado para el dashboard del admin
+CREATE VIEW v_resumen_por_estado AS
+SELECT
+    Estado,
+    COUNT(*)                            AS Total,
+    SUM(Prioridad = 'Urgente')          AS Urgentes,
+    SUM(Prioridad = 'Media')            AS Medias,
+    SUM(Prioridad = 'Baja')             AS Bajas
+FROM Incidencia
+GROUP BY Estado;
+
+-- Vista: incidencias sin técnico asignado (cola de pendientes para el admin)
+CREATE VIEW v_incidencias_sin_tecnico AS
+SELECT
+    i.IdIncidencia,
+    i.Titulo,
+    i.Prioridad,
+    i.Estado,
+    i.FechaCreacion,
+    c.Nombre AS Categoria,
+    i.Direccion
+FROM Incidencia i
+JOIN Categoria c ON i.IdCategoria = c.IdCategoria
+WHERE i.IdTecnicoAsignado IS NULL
+  AND i.Estado NOT IN ('Solucionada')
+ORDER BY
+    FIELD(i.Prioridad, 'Urgente', 'Media', 'Baja'),
+    i.FechaCreacion ASC;
+
+
+-- ============================================================
+-- TEMA 5: STORED PROCEDURES
+-- ============================================================
+
+DELIMITER $$
+
+-- SP: Cambiar estado de una incidencia y registrar en HistorialEstado.
+-- El backend (update_incident_status) cambia el estado pero no escribe
+-- el historial. Este SP centraliza ambas operaciones en una transacción.
+-- Uso: CALL sp_cambiar_estado(2, 'Solucionada', 7, 'Trabajo terminado', @res);
+CREATE PROCEDURE sp_cambiar_estado(
+    IN  p_id_incidencia INT,
+    IN  p_nuevo_estado  VARCHAR(20),
+    IN  p_id_usuario    INT,
+    IN  p_comentario    VARCHAR(300),
+    OUT p_resultado     VARCHAR(100)
+)
+BEGIN
+    DECLARE v_estado_actual VARCHAR(20);
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_resultado = 'ERROR: fallo al cambiar estado';
+    END;
+
+    SELECT Estado INTO v_estado_actual
+    FROM Incidencia WHERE IdIncidencia = p_id_incidencia;
+
+    IF v_estado_actual IS NULL THEN
+        SET p_resultado = 'ERROR: incidencia no encontrada';
+    ELSEIF v_estado_actual = p_nuevo_estado THEN
+        SET p_resultado = 'ERROR: estado ya es el indicado';
+    ELSE
+        START TRANSACTION;
+
+        UPDATE Incidencia
+        SET Estado      = p_nuevo_estado,
+            FechaCierre = IF(p_nuevo_estado = 'Solucionada', NOW(), NULL)
+        WHERE IdIncidencia = p_id_incidencia;
+
+        INSERT INTO HistorialEstado (EstadoAnterior, EstadoNuevo, Comentario, IdIncidencia, IdUsuario)
+        VALUES (v_estado_actual, p_nuevo_estado, p_comentario, p_id_incidencia, p_id_usuario);
+
+        COMMIT;
+        SET p_resultado = 'OK';
+    END IF;
+END$$
+
+
+-- SP: Asignar técnico a incidencia con validaciones de negocio.
+-- El backend (assign_technician_to_incident) ya hace estas validaciones,
+-- pero este SP permite hacerlo también desde herramientas SQL directamente.
+-- Uso: CALL sp_asignar_tecnico(4, 3, 7, @res);
+CREATE PROCEDURE sp_asignar_tecnico(
+    IN  p_id_incidencia INT,
+    IN  p_id_tecnico    INT,
+    IN  p_id_gestor     INT,
+    OUT p_resultado     VARCHAR(100)
+)
+BEGIN
+    DECLARE v_rol_tecnico   INT;
+    DECLARE v_activo        BOOLEAN;
+    DECLARE v_estado_actual VARCHAR(20);
+    DECLARE v_ya_asignado   INT;
+
+    DECLARE EXIT HANDLER FOR SQLEXCEPTION
+    BEGIN
+        ROLLBACK;
+        SET p_resultado = 'ERROR: fallo al asignar técnico';
+    END;
+
+    -- Verificar que el técnico existe, tiene rol Tecnico (IdRol=2) y está activo
+    SELECT IdRol, EstadoCuenta INTO v_rol_tecnico, v_activo
+    FROM Usuario WHERE IdUsuario = p_id_tecnico;
+
+    IF v_rol_tecnico IS NULL THEN
+        SET p_resultado = 'ERROR: técnico no encontrado';
+    ELSEIF v_rol_tecnico != 2 THEN
+        SET p_resultado = 'ERROR: el usuario no es técnico';
+    ELSEIF NOT v_activo THEN
+        SET p_resultado = 'ERROR: técnico inactivo';
+    ELSE
+        SELECT Estado, IdTecnicoAsignado INTO v_estado_actual, v_ya_asignado
+        FROM Incidencia WHERE IdIncidencia = p_id_incidencia;
+
+        IF v_estado_actual IS NULL THEN
+            SET p_resultado = 'ERROR: incidencia no encontrada';
+        ELSEIF v_estado_actual = 'Solucionada' THEN
+            SET p_resultado = 'ERROR: incidencia ya cerrada';
+        ELSEIF v_ya_asignado IS NOT NULL AND v_ya_asignado != p_id_tecnico THEN
+            SET p_resultado = 'ERROR: ya tiene técnico asignado';
+        ELSE
+            START TRANSACTION;
+
+            UPDATE Incidencia
+            SET IdTecnicoAsignado = p_id_tecnico,
+                Estado = IF(Estado = 'Pendiente', 'Asignada', Estado)
+            WHERE IdIncidencia = p_id_incidencia;
+
+            INSERT INTO HistorialEstado (EstadoAnterior, EstadoNuevo, Comentario, IdIncidencia, IdUsuario)
+            VALUES (v_estado_actual,
+                    IF(v_estado_actual = 'Pendiente', 'Asignada', v_estado_actual),
+                    CONCAT('Técnico asignado por gestor (IdUsuario=', p_id_gestor, ')'),
+                    p_id_incidencia, p_id_gestor);
+
+            COMMIT;
+            SET p_resultado = 'OK';
+        END IF;
+    END IF;
+END$$
+
+
+-- SP: Estadísticas de un técnico (útil para el panel de administración)
+-- Uso: CALL sp_estadisticas_tecnico(3);
+CREATE PROCEDURE sp_estadisticas_tecnico(IN p_id_tecnico INT)
+BEGIN
+    SELECT
+        CONCAT(u.Nombre, ' ', u.Apellido1)             AS Tecnico,
+        COUNT(i.IdIncidencia)                           AS TotalAsignadas,
+        SUM(i.Estado = 'Solucionada')                   AS Solucionadas,
+        SUM(i.Estado = 'En proceso')                    AS EnProceso,
+        SUM(i.Estado = 'Asignada')                      AS Asignadas,
+        SUM(i.Estado = 'Pendiente')                     AS Pendientes,
+        ROUND(AVG(
+            TIMESTAMPDIFF(HOUR, i.FechaCreacion, i.FechaCierre)
+        ), 1)                                           AS HorasPromedioResolucion
+    FROM Usuario u
+    LEFT JOIN Incidencia i ON i.IdTecnicoAsignado = u.IdUsuario
+    WHERE u.IdUsuario = p_id_tecnico
+    GROUP BY u.IdUsuario;
+END$$
+
+DELIMITER ;
+
+
+-- ============================================================
+-- TEMA 5: TRIGGERS
+-- ============================================================
+
+DELIMITER $$
+
+-- TRIGGER: Auditoría automática de cambios de estado.
+-- Cuando el backend hace UPDATE directamente sobre la tabla Incidencia
+-- (como hace update_incident_status y assign_technician_to_incident),
+-- este trigger registra el cambio en HistorialEstado automáticamente,
+-- usando el IdUsuarioCreador como fallback porque el backend no pasa
+-- el IdUsuario del editor en el UPDATE directo.
+CREATE TRIGGER trg_incidencia_after_update_estado
+AFTER UPDATE ON Incidencia
+FOR EACH ROW
+BEGIN
+    -- Solo actuar si el estado realmente cambió
+    IF NOT (OLD.Estado <=> NEW.Estado) THEN
+        INSERT INTO HistorialEstado (EstadoAnterior, EstadoNuevo, Comentario, IdIncidencia, IdUsuario)
+        VALUES (
+            OLD.Estado,
+            NEW.Estado,
+            CONCAT('Cambio automático via backend - usuario DB: ', USER()),
+            NEW.IdIncidencia,
+            NEW.IdUsuarioCreador
+        );
+    END IF;
+END$$
+
+
+-- TRIGGER: Validaciones BEFORE INSERT en Incidencia.
+-- Normaliza el título (trim), fuerza Estado='Pendiente' en nuevas incidencias
+-- y asegura que FechaCierre sea NULL al crear.
+CREATE TRIGGER trg_incidencia_before_insert
+BEFORE INSERT ON Incidencia
+FOR EACH ROW
+BEGIN
+    -- Limpiar espacios del título
+    SET NEW.Titulo = TRIM(NEW.Titulo);
+
+    -- Título no puede estar vacío tras el trim
+    IF NEW.Titulo = '' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'El título de la incidencia no puede estar vacío';
+    END IF;
+
+    -- Toda incidencia nueva empieza en Pendiente, sin fecha de cierre
+    SET NEW.Estado      = 'Pendiente';
+    SET NEW.FechaCierre = NULL;
+END$$
+
+
+-- TRIGGER: Al marcar como Solucionada, asignar FechaCierre automáticamente.
+-- Si se vuelve a abrir la incidencia, limpiar FechaCierre.
+CREATE TRIGGER trg_incidencia_before_update
+BEFORE UPDATE ON Incidencia
+FOR EACH ROW
+BEGIN
+    IF NEW.Estado = 'Solucionada' AND NEW.FechaCierre IS NULL THEN
+        SET NEW.FechaCierre = NOW();
+    END IF;
+
+    IF NEW.Estado != 'Solucionada' THEN
+        SET NEW.FechaCierre = NULL;
+    END IF;
+END$$
+
+
+-- TRIGGER: Normalizar email a minúsculas antes de insertar un usuario.
+-- Previene duplicados del tipo 'Ana@email.com' vs 'ana@email.com'.
+-- Compatible con el backend (user_service.py crea usuarios vía ORM).
+CREATE TRIGGER trg_usuario_before_insert
+BEFORE INSERT ON Usuario
+FOR EACH ROW
+BEGIN
+    SET NEW.Email = LOWER(TRIM(NEW.Email));
+
+    IF NEW.Email NOT LIKE '%@%.%' THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Formato de email inválido';
+    END IF;
+END$$
+
+
+-- TRIGGER: Normalizar email en UPDATE de usuario.
+CREATE TRIGGER trg_usuario_before_update
+BEFORE UPDATE ON Usuario
+FOR EACH ROW
+BEGIN
+    IF NOT (OLD.Email <=> NEW.Email) THEN
+        SET NEW.Email = LOWER(TRIM(NEW.Email));
+
+        IF NEW.Email NOT LIKE '%@%.%' THEN
+            SIGNAL SQLSTATE '45000'
+            SET MESSAGE_TEXT = 'Formato de email inválido';
+        END IF;
+    END IF;
+END$$
+
+DELIMITER ;
