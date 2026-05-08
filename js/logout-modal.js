@@ -27,7 +27,7 @@
     const modal = ensureModal();
     const config = {
       title: 'Cerrar sesion',
-      message: 'Deseas cerrar sesion?',
+      message: '¿Deseas cerrar sesion?',
       confirmText: 'Cerrar sesion',
       cancelText: 'Cancelar',
       ...(options || {})

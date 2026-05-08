@@ -1,13 +1,17 @@
 from datetime import datetime
 from typing import Optional
+import asyncio
+from contextlib import suppress
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.orm import Session
+from fastapi.responses import StreamingResponse
 
 from app.database import get_db
 from app.models.incident import Incident
+from app.models.subcategory import Subcategory
 
 router = APIRouter(tags=["incidents"])
 
@@ -17,6 +21,8 @@ class IncidentCreate(BaseModel):
 	description: str
 	location: str
 	category: str
+	subcategory: Optional[str] = None
+	subcategoryId: Optional[int] = None
 	priority: Optional[str] = "media"
 	userId: Optional[int] = 1
 
@@ -81,12 +87,42 @@ def map_category_to_id(category: str) -> int:
 		"señalización": 5,
 		"infraestructura": 6,
 		"servicios e infraestructura": 6,
+		"agua y saneamiento": 6,
 		"agua": 6,
 		"mobiliario": 7,
 		"mobiliario urbano": 7,
 		"mobiliario-urbano": 7,
 	}
 	return category_map.get(normalized, 2)
+
+
+def get_subcategories_by_category(category_id: int, db: Session) -> list:
+	"""Obtiene todas las subcategorías de una categoría"""
+	subcategories = db.query(Subcategory).filter(
+		Subcategory.IdCategoria == category_id
+	).all()
+	return [{
+		"id": s.IdSubcategoria,
+		"nombre": s.Nombre,
+		"descripcion": s.Descripcion,
+		"icono": s.Icono,
+		"prioridad": s.Prioridad,
+	} for s in subcategories]
+
+
+def build_incident_title(payload: IncidentCreate, subcategory_name: Optional[str]) -> str:
+	explicit_title = (payload.title or "").strip()
+	if explicit_title:
+		return explicit_title
+
+	description = (payload.description or "").strip()
+	if description:
+		return description[:150]
+
+	if subcategory_name:
+		return subcategory_name
+
+	return f"Incidencia de {payload.category}".strip()
 
 
 def map_row_to_frontend(item: Incident, db: Session) -> dict:
@@ -149,6 +185,98 @@ def list_incidents(db: Session = Depends(get_db)):
 	return [map_row_to_frontend(item, db) for item in items]
 
 
+def get_incidents_signature(db: Session) -> str:
+	rows = db.execute(
+		text(
+			"""
+			SELECT
+				COUNT(*) AS total,
+				COALESCE(MAX(IdIncidencia), 0) AS max_id,
+				SUM(CASE WHEN Estado = 'Pendiente' THEN 1 ELSE 0 END) AS pending_count,
+				SUM(CASE WHEN Estado IN ('En proceso', 'Asignada') THEN 1 ELSE 0 END) AS in_progress_count,
+				SUM(CASE WHEN Estado = 'Solucionada' THEN 1 ELSE 0 END) AS solved_count,
+				SUM(CASE WHEN IdTecnicoAsignado IS NOT NULL THEN 1 ELSE 0 END) AS assigned_count
+			FROM Incidencia
+			"""
+		)
+	).mappings().first()
+
+	if not rows:
+		return "0|0|0|0|0|0"
+
+	return "|".join([
+		str(rows.get("total") or 0),
+		str(rows.get("max_id") or 0),
+		str(rows.get("pending_count") or 0),
+		str(rows.get("in_progress_count") or 0),
+		str(rows.get("solved_count") or 0),
+		str(rows.get("assigned_count") or 0),
+	])
+
+
+@router.get("/stream")
+async def stream_incidents():
+	db_gen = get_db()
+	db_session = next(db_gen)
+
+	async def event_generator():
+		previous_signature = None
+
+		try:
+			# Initial event to confirm subscription is alive.
+			yield "event: connected\ndata: ready\n\n"
+
+			while True:
+				try:
+					current_signature = get_incidents_signature(db_session)
+					if current_signature != previous_signature:
+						previous_signature = current_signature
+						yield f"event: incidents-updated\ndata: {current_signature}\n\n"
+
+					# Keep-alive heartbeat for proxies/timeouts.
+					yield "event: heartbeat\ndata: ok\n\n"
+					await asyncio.sleep(2)
+				except asyncio.CancelledError:
+					break
+				except Exception:
+					await asyncio.sleep(2)
+		finally:
+			with suppress(Exception):
+				db_session.close()
+			with suppress(Exception):
+				db_gen.close()
+
+	return StreamingResponse(
+		event_generator(),
+		media_type="text/event-stream",
+		headers={
+			"Cache-Control": "no-cache",
+			"Connection": "keep-alive",
+			"X-Accel-Buffering": "no",
+		},
+	)
+
+
+@router.get("/categories/with-subcategories")
+def get_categories_with_subcategories(db: Session = Depends(get_db)):
+	"""Obtiene todas las categorías con sus subcategorías"""
+	categories = db.execute(
+		text("SELECT IdCategoria, Nombre, Descripcion FROM Categoria ORDER BY IdCategoria")
+	).mappings().all()
+	
+	result = []
+	for cat in categories:
+		cat_id = cat.get("IdCategoria")
+		result.append({
+			"id": cat_id,
+			"nombre": cat.get("Nombre"),
+			"descripcion": cat.get("Descripcion"),
+			"subcategories": get_subcategories_by_category(cat_id, db)
+		})
+	
+	return result
+
+
 @router.get("/{incident_id}")
 def get_incident(incident_id: int, db: Session = Depends(get_db)):
 	item = db.query(Incident).filter(Incident.IdIncidencia == incident_id).first()
@@ -159,13 +287,30 @@ def get_incident(incident_id: int, db: Session = Depends(get_db)):
 
 @router.post("", status_code=201)
 def create_incident(payload: IncidentCreate, db: Session = Depends(get_db)):
+	category_id = map_category_to_id(payload.category)
+	
+	# Si viene subcategoryId, validar que existe y pertenece a la categoría
+	subcategory_id = None
+	subcategory_name = None
+	if payload.subcategoryId:
+		subcategory = db.query(Subcategory).filter(
+			Subcategory.IdSubcategoria == payload.subcategoryId,
+			Subcategory.IdCategoria == category_id
+		).first()
+		if subcategory:
+			subcategory_id = payload.subcategoryId
+			subcategory_name = subcategory.Nombre
+
+	title = build_incident_title(payload, subcategory_name)
+	
 	created = Incident(
-		Titulo=(payload.title or f"Incidencia de {payload.category}").strip(),
+		Titulo=title.strip(),
 		Descripcion=payload.description.strip(),
 		Prioridad=normalize_priority(payload.priority or "media"),
 		Direccion=payload.location.strip(),
 		IdUsuarioCreador=payload.userId or 1,
-		IdCategoria=map_category_to_id(payload.category),
+		IdCategoria=category_id,
+		IdSubcategoria=subcategory_id,
 		IdServicio=None,
 		IdTecnicoAsignado=None,
 		Estado="Pendiente",

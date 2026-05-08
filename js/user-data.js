@@ -327,11 +327,16 @@ function formatDate(dateString) {
 }
 
 function renderIncidentCard(incident) {
+  const displayTitle = window.resolveIncidentDisplayTitle
+    ? window.resolveIncidentDisplayTitle(incident, { maxLength: 80 })
+    : (incident && incident.title ? String(incident.title) : 'Incidencia');
+
   return `
     <a href="user-incidencia-detalle.html?id=${encodeURIComponent(incident.id)}" class="group block bg-white border border-slate-200 rounded-2xl p-5 hover:shadow-md hover:border-blue-300 transition-all duration-200">
       <div class="flex items-start justify-between gap-3 mb-2">
         <div>
-          <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-700 transition-colors">${getCategoryLabel(incident.category)}</h3>
+          <h3 class="text-xl font-bold text-slate-900 group-hover:text-blue-700 transition-colors">${displayTitle}</h3>
+          <p class="text-[11px] text-slate-500 mt-1">${getCategoryLabel(incident.category)}</p>
           <p class="text-xs text-slate-500 mt-1">Incidencia #${incident.id}</p>
         </div>
         ${getStatusBadge(incident.status)}
@@ -580,6 +585,35 @@ function getCurrentSessionEmail() {
   }
 }
 
+function getCurrentSessionInfo() {
+  try {
+    const fromLocal = localStorage.getItem('urbanHelpSession');
+    const fromSession = sessionStorage.getItem('urbanHelpSession');
+    const raw = fromLocal || fromSession;
+    if (!raw) return {};
+
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function getCurrentSessionDisplayName() {
+  const sessionInfo = getCurrentSessionInfo();
+  const storedName = String(sessionInfo.nombre || sessionInfo.fullName || '').trim();
+  if (storedName) {
+    return storedName;
+  }
+
+  const sessionEmail = getCurrentSessionEmail();
+  if (!sessionEmail) {
+    return '';
+  }
+
+  return sessionEmail.split('@')[0].replace(/[._-]+/g, ' ').trim();
+}
+
 async function resolveCurrentUserId() {
   const sessionEmail = getCurrentSessionEmail();
   if (!sessionEmail || !window.userApi || typeof window.userApi.getByEmail !== 'function') {
@@ -595,12 +629,13 @@ async function resolveCurrentUserId() {
   }
 }
 
-function normalizeFrontendIncidentForApi(incident, userId) {
+function normalizeFrontendIncidentForApi(incident, userId, categoryName = '', subcategoryId = null) {
   return {
     title: incident && incident.title ? incident.title : '',
     description: incident && incident.description ? incident.description : '',
     location: incident && incident.location ? incident.location : '',
-    category: incident && incident.category ? incident.category : 'limpieza',
+    category: categoryName || (incident && incident.category ? incident.category : 'limpieza'),
+    subcategoryId: subcategoryId || null,
     priority: incident && incident.priority ? incident.priority : 'media',
     userId: userId || (incident && incident.userId ? incident.userId : 1)
   };
@@ -621,12 +656,12 @@ async function loadIncidentsFromApi() {
   }
 }
 
-async function createIncidentInApi(incident) {
+async function createIncidentInApi(incident, categoryName = '', subcategoryId = null) {
   if (!window.incidentApi || typeof window.incidentApi.create !== 'function') return null;
 
   try {
     const currentUserId = await resolveCurrentUserId();
-    const created = await window.incidentApi.create(normalizeFrontendIncidentForApi(incident, currentUserId));
+    const created = await window.incidentApi.create(normalizeFrontendIncidentForApi(incident, currentUserId, categoryName, subcategoryId));
     if (!created) return null;
     return normalizeApiIncident(created);
   } catch {
@@ -641,6 +676,7 @@ try {
 }
 window.getIncidents = getIncidents;
 window.saveIncidents = saveIncidents;
+window.getStatusBadge = getStatusBadge;
 window.addIncident = addIncident;
 window.loadIncidentsFromApi = loadIncidentsFromApi;
 window.createIncidentInApi = createIncidentInApi;
@@ -654,34 +690,59 @@ window.getAppUsers = getAppUsers;
 window.saveAppUsers = saveAppUsers;
 window.upsertAppUser = upsertAppUser;
 
+const USER_PROFILE_STORAGE_PREFIX = 'userProfile:';
+
 const defaultUserProfile = {
-  id: 'USR001',
-  fullName: 'María García López',
-  email: 'maria.garcia@email.com',
-  phone: '+34 612 345 678',
-  address: 'Calle Mayor, 45',
-  postalCode: '28013',
-  city: 'Madrid',
+  id: '',
+  fullName: 'Ciudadano',
+  email: '',
+  phone: '',
+  address: '',
+  postalCode: '',
+  city: '',
   notificationsEnabled: true
 };
 
+function getUserProfileStorageKey(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  return `${USER_PROFILE_STORAGE_PREFIX}${normalizedEmail || 'default'}`;
+}
+
 function getUserProfile() {
-  const stored = localStorage.getItem('userProfile');
+  const sessionEmail = getCurrentSessionEmail();
+  const storageKey = getUserProfileStorageKey(sessionEmail);
+  const stored = localStorage.getItem(storageKey);
+  const baseProfile = {
+    ...defaultUserProfile,
+    fullName: getCurrentSessionDisplayName() || defaultUserProfile.fullName,
+    email: sessionEmail || defaultUserProfile.email,
+  };
+
   if (!stored) {
-    return { ...defaultUserProfile };
+    return baseProfile;
   }
 
   try {
-    return { ...defaultUserProfile, ...JSON.parse(stored) };
+    return { ...baseProfile, ...JSON.parse(stored) };
   } catch {
-    return { ...defaultUserProfile };
+    return baseProfile;
   }
 }
 
 function saveUserProfile(profile) {
-  localStorage.setItem('userProfile', JSON.stringify(profile));
+  const sessionEmail = getCurrentSessionEmail();
+  const profileEmail = (profile && profile.email ? String(profile.email).trim().toLowerCase() : '') || sessionEmail || '';
+  const storageKey = getUserProfileStorageKey(profileEmail);
+  localStorage.setItem(storageKey, JSON.stringify({
+    ...defaultUserProfile,
+    ...profile,
+    email: profileEmail || (profile && profile.email ? profile.email : ''),
+  }));
 }
 
 window.defaultUserProfile = defaultUserProfile;
+window.getUserProfileStorageKey = getUserProfileStorageKey;
+window.getCurrentSessionInfo = getCurrentSessionInfo;
+window.getCurrentSessionDisplayName = getCurrentSessionDisplayName;
 window.getUserProfile = getUserProfile;
 window.saveUserProfile = saveUserProfile;

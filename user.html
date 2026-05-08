@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <base href="http://localhost:8081/">
+
     <title>Dashboard Usuario - Mis Incidencias</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
@@ -18,7 +18,7 @@
                     <h1 class="text-3xl sm:text-4xl font-extrabold text-slate-900">Mis Incidencias</h1>
                     <p class="text-slate-600 mt-2">Gestiona y consulta tus reportes ciudadanos</p>
                 </div>
-                <a href="user-perfil.html" class="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors" title="Ir a mi perfil" aria-label="Ir a mi perfil">
+                <a href="user-perfil.html?v=20260508a" class="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors" title="Ir a mi perfil" aria-label="Ir a mi perfil">
                     <i data-lucide="user-circle-2" class="w-5 h-5"></i>
                 </a>
             </div>
@@ -37,6 +37,10 @@
                 <i data-lucide="list" class="w-5 h-5"></i>
                 Ver todas mis incidencias
             </a>
+            <button id="refreshNowBtn" type="button" class="inline-flex items-center justify-center gap-2 bg-white text-slate-700 border border-slate-300 px-6 py-3 rounded-xl transition-all font-semibold shadow-sm hover:bg-slate-50 hover:shadow-md">
+                <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                Actualizar ahora
+            </button>
         </div>
 
         <div>
@@ -47,6 +51,7 @@
 
     <script src="./js/api-client.js"></script>
     <script src="./js/user-data.js"></script>
+    <script src="./js/incident-display.js"></script>
     <script src="./js/script-user.js"></script>
 </body>
 </html>

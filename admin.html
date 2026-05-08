@@ -4,10 +4,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <base href="http://localhost:8081/">
+
     <title>Gestor Municipal Pro - v3.0 (Data Sync)</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://unpkg.com/lucide@0.439.0/dist/umd/lucide.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="./js/api-client.js"></script>
     <script src="./js/user-data.js"></script>
@@ -70,6 +70,11 @@
     </div>
 
     <script>
+        // Guard: si lucide no carga, evitar ReferenceError
+        if (typeof lucide === 'undefined') {
+            window.lucide = { createIcons: function() {} };
+        }
+
         // --- ADAPTACIÓN DE DATOS ---
         // Como tu user-data.js usa 'mockIncidents', lo usamos globalmente
         let incidenciasActuales = typeof getIncidents === 'function' ? getIncidents() : [];
@@ -112,6 +117,9 @@
         let currentTab = 'dashboard';
         let sidebarOpen = false;
         let editingId = null;
+        let incidentsRefreshTimer = null;
+        let incidentsEventSource = null;
+        let incidentsRealtimeConnected = false;
 
         function toggleSidebar() {
             sidebarOpen = !sidebarOpen;
@@ -123,6 +131,22 @@
             return !!(incident && incident.assignedTechnician && String(incident.assignedTechnician).trim());
         }
 
+                function resolveIncidentDisplayTitle(incident) {
+            var t = incident.titulo || incident.title || incident.description || '';
+            return String(t).trim().slice(0, 80) || 'Incidencia sin titulo';
+        }
+
+                function getStatusBadge(status) {
+            const map = {
+                'pendiente':  ['bg-yellow-100 text-yellow-800', 'Pendiente'],
+                'en-proceso': ['bg-blue-100 text-blue-800', 'En proceso'],
+                'resuelta':   ['bg-green-100 text-green-800', 'Resuelta'],
+                'cerrada':    ['bg-gray-100 text-gray-600', 'Cerrada'],
+            };
+            const entry = map[status] || ['bg-gray-100 text-gray-600', status || 'Desconocido'];
+            return '<span class="px-2 py-1 rounded-full text-xs font-semibold ' + entry[0] + '">' + entry[1] + '</span>';
+        }
+
         async function switchTab(tabId, id = null) {
             currentTab = tabId;
             editingId = id;
@@ -131,7 +155,74 @@
             window.scrollTo(0, 0);
         }
 
-        function renderApp() {
+        async function syncIncidentsAndRerender() {
+            await refreshIncidents();
+            renderApp();
+        }
+
+        function stopIncidentsAutoRefresh() {
+            if (incidentsRefreshTimer) clearInterval(incidentsRefreshTimer);
+            incidentsRefreshTimer = null;
+        }
+
+        function startIncidentsAutoRefresh() {
+            stopIncidentsAutoRefresh();
+
+            // Fallback refresh when SSE is unavailable.
+            incidentsRefreshTimer = setInterval(async () => {
+                if (document.hidden) return;
+                await syncIncidentsAndRerender();
+            }, 5000);
+        }
+
+        function stopIncidentsRealtimeUpdates() {
+            if (incidentsEventSource) {
+                incidentsEventSource.close();
+                incidentsEventSource = null;
+            }
+            incidentsRealtimeConnected = false;
+        }
+
+        function resolveIncidentsStreamUrl() {
+            const protocol = window.location.protocol;
+            const port = window.location.port;
+
+            if (protocol === 'file:' || (port && port !== '80' && port !== '443' && port !== '8081')) {
+                return 'http://localhost:8080/api/incidents/stream';
+            }
+
+            return '/api/incidents/stream';
+        }
+
+        function startIncidentsRealtimeUpdates() {
+            if (!window.EventSource) {
+                startIncidentsAutoRefresh();
+                return;
+            }
+
+            stopIncidentsRealtimeUpdates();
+
+            const streamUrl = resolveIncidentsStreamUrl();
+            incidentsEventSource = new EventSource(streamUrl);
+
+            incidentsEventSource.addEventListener('connected', async () => {
+                incidentsRealtimeConnected = true;
+                stopIncidentsAutoRefresh();
+                await syncIncidentsAndRerender();
+            });
+
+            incidentsEventSource.addEventListener('incidents-updated', async () => {
+                if (document.hidden) return;
+                await syncIncidentsAndRerender();
+            });
+
+            incidentsEventSource.onerror = () => {
+                incidentsRealtimeConnected = false;
+                startIncidentsAutoRefresh();
+            };
+        }
+
+        async function renderApp() {
             const container = document.getElementById('app-container');
             const nav = document.getElementById('nav-links');
             if (typeof getIncidents === 'function') {
@@ -156,13 +247,13 @@
             switch (currentTab) {
                 case 'dashboard': renderDashboard(container); break;
                 case 'incidencias': renderIncidencias(container); break;
-                case 'solicitudes': renderSolicitudes(container); break;
-                case 'usuarios': renderUsuarios(container); break;
+                case 'solicitudes': await renderSolicitudes(container); break;
+                case 'usuarios': await renderUsuarios(container); break;
                 case 'configuracion': renderSettings(container); break;
                 case 'edit-usuario': renderEditUsuario(container, editingId); break;
                 case 'edit-incidencia': renderEditIncidencia(container, editingId); break;
             }
-            lucide.createIcons();
+            if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         }
 
         function renderDashboard(container) {
@@ -192,7 +283,7 @@
                             <div class="divide-y divide-gray-50">
                                 ${incidenciasActuales.slice(0, 4).map(inc => `
                                     <div class="p-4 hover:bg-gray-50 cursor-pointer flex justify-between items-center" onclick="openModal('${inc.id}')">
-                                        <div><p class="text-sm font-bold">${inc.title}</p><p class="text-xs text-gray-400">${inc.location}</p></div>
+                                        <div><p class="text-sm font-bold">${resolveIncidentDisplayTitle(inc)}</p><p class="text-xs text-gray-400">${inc.location}</p></div>
                                         ${getStatusBadge(inc.status)}
                                     </div>
                                 `).join('')}
@@ -206,7 +297,8 @@
 
         function renderIncidencias(container) {
             const filtradas = incidenciasActuales.filter(i => {
-                const cumpleTexto = i.title.toLowerCase().includes(filtros.texto.toLowerCase()) || i.id.toLowerCase().includes(filtros.texto.toLowerCase());
+                const displayTitle = resolveIncidentDisplayTitle(i);
+                const cumpleTexto = displayTitle.toLowerCase().includes(filtros.texto.toLowerCase()) || i.id.toLowerCase().includes(filtros.texto.toLowerCase());
                 const cumpleEstado = filtros.estado === 'todas' || i.status === filtros.estado;
                 const cumpleCat = filtros.categoria === 'todas' || i.category === filtros.categoria;
                 return cumpleTexto && cumpleEstado && cumpleCat;
@@ -248,7 +340,7 @@
                             <tbody class="divide-y divide-gray-100 text-sm">
                                 ${filtradas.map(inc => `
                                     <tr class="hover:bg-blue-50/20 transition-colors">
-                                        <td class="px-6 py-4"><p class="font-bold">${inc.title}</p><p class="text-[10px] font-mono text-gray-400">${inc.id}</p></td>
+                                        <td class="px-6 py-4"><p class="font-bold">${resolveIncidentDisplayTitle(inc)}</p><p class="text-[10px] font-mono text-gray-400">${inc.id}</p></td>
                                         <td class="px-6 py-4">${getStatusBadge(inc.status)}</td>
                                         <td class="px-6 py-4 font-bold text-[10px] uppercase ${getPriorityColor(inc.priority)}">${inc.priority}</td>
                                         <td class="px-6 py-4">
@@ -271,7 +363,7 @@
                     </div>
                 </div>
             `;
-            lucide.createIcons();
+            if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         }
 
         async function fetchSolicitudesTecnicos() {
@@ -332,7 +424,7 @@
                     </div>
                 </div>
             `;
-            lucide.createIcons();
+            if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         }
 
         async function gestionarSolicitud(id, accion) {
@@ -385,7 +477,7 @@
                         <form onsubmit="actualizarIncidenciaForm(event, '${inc.id}')" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div class="md:col-span-2">
                                 <label class="text-[10px] font-bold text-gray-400 uppercase">Título</label>
-                                <input type="text" name="title" value="${inc.title}" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100">
+                                <input type="text" name="title" value="${resolveIncidentDisplayTitle(inc)}" class="w-full border rounded-xl px-4 py-2 mt-1 outline-none focus:ring-2 ring-blue-100">
                             </div>
                             <div>
                                 <label class="text-[10px] font-bold text-gray-400 uppercase">Estado</label>
@@ -467,7 +559,7 @@
                         </table>
                     </div>
                 </div>`;
-            lucide.createIcons();
+            if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         }
 
         function renderEditUsuario(container, userId) {
@@ -545,7 +637,7 @@
                 <div class="space-y-6 fade-in relative">
                     <button onclick="closeModal()" class="absolute -top-2 -right-2 p-2 hover:bg-gray-100 rounded-full text-gray-400"><i data-lucide="x"></i></button>
                     <h2 class="text-xl font-bold">Asignar Técnico</h2>
-                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100"><p class="text-sm font-bold">${inc.title}</p></div>
+                    <div class="bg-blue-50 p-4 rounded-xl border border-blue-100"><p class="text-sm font-bold">${resolveIncidentDisplayTitle(inc)}</p></div>
                     <div class="space-y-2">
                         ${tecnicos.length === 0 ? `
                             <div class="p-4 border rounded-xl bg-gray-50 text-sm text-gray-600">
@@ -561,7 +653,7 @@
                 </div>
             `;
             modal.classList.add('active');
-            lucide.createIcons();
+            if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         }
 
         async function confirmarAsignacionT(incId, tecId, tecNombre) {
@@ -612,7 +704,7 @@
             content.innerHTML = `
                 <div class="space-y-6 relative">
                     <button onclick="closeModal()" class="absolute -top-2 -right-2 p-2 hover:bg-gray-100 rounded-full text-gray-400"><i data-lucide="x"></i></button>
-                    <div><div class="mb-2">${getStatusBadge(inc.status)}</div><h2 class="text-2xl font-bold">${inc.title}</h2></div>
+                    <div><div class="mb-2">${getStatusBadge(inc.status)}</div><h2 class="text-2xl font-bold">${resolveIncidentDisplayTitle(inc)}</h2></div>
                     <div class="grid grid-cols-2 gap-4 py-6 border-y border-gray-100 text-sm">
                         <div><p class="text-xs font-bold text-gray-400 uppercase">Ubicación</p><p class="font-bold">${inc.location}</p></div>
                         <div><p class="text-xs font-bold text-gray-400 uppercase">Ciudadano</p><p class="font-bold">${inc.citizenName || 'Anónimo'}</p></div>
@@ -626,7 +718,7 @@
                 </div>
             `;
             document.getElementById('modal').classList.add('active');
-            lucide.createIcons();
+            if (window.lucide && window.lucide.createIcons) window.lucide.createIcons();
         }
 
         function actualizarFiltros(campo, valor) {
@@ -659,8 +751,8 @@
             logoutBtn.addEventListener('click', async () => {
                 const confirmed = window.confirmLogoutModal
                     ? await window.confirmLogoutModal({
-                        title: 'Cerrar sesion',
-                        message: '¿Deseas cerrar sesion ahora?',
+                        title: 'Cerrar sesión',
+                        message: '¿Deseas cerrar sesión ahora?',
                         confirmText: 'Si, cerrar',
                         cancelText: 'Cancelar'
                     })
@@ -672,9 +764,34 @@
         }
 
         window.onload = async () => {
-            await refreshIncidents();
-            switchTab('dashboard');
+            try {
+                await refreshIncidents();
+                await refreshUsers();
+                renderApp();
+                await switchTab('dashboard');
+                startIncidentsRealtimeUpdates();
+            } catch (err) {
+                console.error('Admin init error:', err);
+                const container = document.getElementById('app-container');
+                if (container) {
+                    container.innerHTML = `<div class="p-8 text-red-600 font-bold">Error al cargar el panel: ${err.message}. Revisa la consola del navegador (F12).</div>`;
+                }
+            }
         };
+
+        window.addEventListener('focus', async () => {
+            await syncIncidentsAndRerender();
+        });
+
+        window.addEventListener('storage', async (event) => {
+            if (event.key !== 'urbanIncidents') return;
+            await syncIncidentsAndRerender();
+        });
+
+        window.addEventListener('beforeunload', () => {
+            stopIncidentsRealtimeUpdates();
+            stopIncidentsAutoRefresh();
+        });
     </script>
 </body>
 

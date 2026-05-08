@@ -24,6 +24,35 @@ function statCard(title, value, valueColor, iconName, iconWrapClass, iconClass) 
     `;
 }
 
+let userDashboardRefreshTimer = null;
+
+function scheduleUserDashboardRefresh() {
+    if (userDashboardRefreshTimer) {
+        clearTimeout(userDashboardRefreshTimer);
+    }
+
+    userDashboardRefreshTimer = setTimeout(() => {
+        render();
+    }, 120);
+}
+
+function startUserDashboardAutoRefresh() {
+    window.setInterval(() => {
+        if (document.hidden) return;
+        scheduleUserDashboardRefresh();
+    }, 10000);
+}
+
+function setupManualRefreshButton() {
+    const refreshBtn = document.getElementById('refreshNowBtn');
+    if (!refreshBtn || refreshBtn.dataset.bound === 'true') return;
+
+    refreshBtn.dataset.bound = 'true';
+    refreshBtn.addEventListener('click', () => {
+        scheduleUserDashboardRefresh();
+    });
+}
+
 /**
  * Función principal de renderizado
  */
@@ -70,7 +99,20 @@ async function render() {
     if (window.lucide) {
         window.lucide.createIcons();
     }
+
+    setupManualRefreshButton();
 }
 
 // Ejecutar al cargar el script
 document.addEventListener('DOMContentLoaded', render);
+
+document.addEventListener('DOMContentLoaded', startUserDashboardAutoRefresh);
+
+window.addEventListener('focus', () => {
+    scheduleUserDashboardRefresh();
+});
+
+window.addEventListener('storage', (event) => {
+    if (!event || event.key !== 'urbanIncidents') return;
+    scheduleUserDashboardRefresh();
+});

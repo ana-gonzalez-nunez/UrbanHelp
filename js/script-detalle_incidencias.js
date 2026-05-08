@@ -2,6 +2,8 @@
  * RENDERIZADO DEL HTML
  */
 function renderIncidentDetail(incident) {
+    const displayTitle = (window.resolveIncidentDisplayTitle ? window.resolveIncidentDisplayTitle(incident, { maxLength: 90 }) : (incident && incident.title ? String(incident.title) : '').trim() || 'Incidencia sin título');
+
     return `
         <nav class="bg-white/90 backdrop-blur border-b border-slate-200 shadow-sm sticky top-0 z-[1000]">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
@@ -23,7 +25,10 @@ function renderIncidentDetail(incident) {
 
         <div class="max-w-7xl mx-auto space-y-6 pt-8 pb-20 px-4 sm:px-6">
             <div class="bg-white rounded-2xl shadow-xl border border-slate-200/70 p-6 flex justify-between items-center">
-                <h1 class="text-2xl font-extrabold text-slate-900">Incidencia #${incident.id}</h1>
+                <div>
+                    <h1 class="text-2xl font-extrabold text-slate-900">${displayTitle}</h1>
+                    <p class="text-xs font-mono text-slate-500 mt-1">Incidencia #${incident.id}</p>
+                </div>
                 <span class="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold border border-blue-200">
                     ${incident.status.toUpperCase()}
                 </span>
@@ -312,7 +317,7 @@ async function initMapView(incident) {
         const mapUrl = getExternalMapUrl(incident);
         mapContainer.innerHTML = `
             <div class="p-4 text-sm text-slate-600 space-y-3">
-                <p>No se pudo localizar esta direccion en el mapa.</p>
+                <p>No se pudo localizar esta dirección en el mapa.</p>
                 <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
                     Ver en Google Maps
                 </a>
@@ -379,6 +384,8 @@ async function render() {
         return;
     }
 
+    document.title = `${resolveIncidentDisplayTitle(incident)} - Detalle de Incidencia`;
+
     // 1. Inyectar HTML
     document.getElementById('app').innerHTML = renderIncidentDetail(incident);
 
@@ -389,7 +396,7 @@ async function render() {
     // 3. Lanzar el mapa
     initMapView(incident);
     
-    // Configurar cierre de sesión si tienes el botón en la navbar
+    // Configurar cierre de sesion si tienes el botón en la navbar
     const logoutBtn = document.getElementById('logoutBtn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', async () => {
@@ -400,7 +407,7 @@ async function render() {
                     confirmText: 'Si, cerrar',
                     cancelText: 'Cancelar'
                 })
-                : confirm("¿Deseas cerrar sesión?");
+                : confirm("¿Deseas cerrar sesion?");
 
             if (confirmed) window.location.href = 'login.html';
         });

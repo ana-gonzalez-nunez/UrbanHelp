@@ -130,18 +130,16 @@ CREATE INDEX idx_usuario_estado   ON Usuario(EstadoCuenta);
 
 INSERT INTO Usuario (IdUsuario, Nombre, Apellido1, Apellido2, Email, Contrasena, Telefono, FechaRegistro, EstadoCuenta, IdRol, IdServicio)
 VALUES
-(1,  'Carlos',  'Martínez', 'López',   'carlos.martinez@email.com', '1234',   '600111111', '2024-03-15', 1, 1, NULL),
-(2,  'Lucía',   'Fernández','Ruiz',    'lucia.fernandez@email.com',  '1234',   '600222222', '2024-05-20', 1, 1, NULL),
-(3,  'Miguel',  'García',   'Santos',  'miguel.garcia@email.com',    '1234',   '600333333', '2024-09-01', 1, 2, 1),
-(4,  'Ana',     'Torres',   'Vega',    'ana.torres@email.com',       '1234',   '600444444', '2025-01-10', 1, 2, 2),
-(5,  'Pedro',   'López',    'Jiménez', 'pedro.lopez@email.com',      '1234',   '600555555', '2025-06-18', 1, 1, NULL),
-(6,  'Elena',   'Sánchez',  'Morales', 'elena.sanchez@email.com',    '1234',   '600666666', '2025-09-22', 1, 2, 3),
-(7,  'Javier',  'Romero',   'Castro',  'javier.romero@email.com',    '1234',   '600777777', '2026-01-05', 1, 4, NULL),
--- Usuarios demo del proyecto (usados en el frontend para pruebas)
-(8,  'Usuario', 'Demo',     '-',       'user@urbanhelp.es',          '123456', '600000001', '2026-04-11', 1, 1, NULL),
-(9,  'Tecnico', 'Demo',     '-',       'tecnico@urbanhelp.es',       '123456', '600000002', '2026-04-11', 1, 2, 1),
-(10, 'Admin',   'Demo',     '-',       'admin@urbanhelp.es',         '123456', '600000003', '2026-04-11', 1, 4, NULL);
-
+(1,  'Carlos',  'Martinez', 'Lopez',   'carlos.martinez@urbanhelp.es', '1234',   '611234501', '2024-03-15', 1, 1, NULL),
+(2,  'Lucia',   'Fernandez','Ruiz',    'lucia.fernandez@urbanhelp.es', '1234',   '611234502', '2024-05-20', 1, 1, NULL),
+(3,  'Miguel',  'Garcia',   'Santos',  'miguel.garcia@urbanhelp.es',   '1234',   '611234503', '2024-09-01', 1, 2, 1),
+(4,  'Ana',     'Torres',   'Vega',    'ana.torres@urbanhelp.es',      '1234',   '611234504', '2025-01-10', 1, 2, 2),
+(5,  'Pedro',   'Lopez',    'Jimenez', 'pedro.lopez@urbanhelp.es',     '1234',   '611234505', '2025-06-18', 1, 1, NULL),
+(6,  'Elena',   'Sanchez',  'Morales', 'elena.sanchez@urbanhelp.es',   '1234',   '611234506', '2025-09-22', 1, 2, 3),
+(7,  'Javier',  'Romero',   'Castro',  'javier.romero@urbanhelp.es',   '1234',   '611234507', '2026-01-05', 1, 4, NULL),
+(8,  'Maria',   'Garcia',   'Lopez',   'user@urbanhelp.es',            '123456', '611234508', '2026-04-11', 1, 1, NULL),
+(9,  'Roberto', 'Martinez', 'Ruiz',    'tecnico@urbanhelp.es',         '123456', '611234509', '2026-04-11', 1, 2, 1),
+(10, 'Isabel',  'Sanchez',  'Molina',  'admin@urbanhelp.es',           '123456', '611234510', '2026-04-11', 1, 4, NULL));
 -- ============================================================
 -- TABLA: Categoria
 -- ============================================================
@@ -155,13 +153,80 @@ CREATE TABLE Categoria (
 ) ENGINE=InnoDB;
 
 INSERT INTO Categoria (IdCategoria, Nombre, Descripcion) VALUES
-(1, 'Alumbrado',    'Problemas en farolas o iluminación pública'),
-(2, 'Limpieza',     'Suciedad o acumulación de residuos'),
-(3, 'Baches',       'Deterioro del asfalto'),
-(4, 'Parques',      'Incidencias en zonas verdes'),
-(5, 'Señalización', 'Problemas en señales de tráfico'),
-(6, 'Agua',         'Fugas o problemas de saneamiento'),
-(7, 'Mobiliario',   'Bancos, papeleras o elementos dañados');
+(1, 'Alumbrado',             'Problemas en farolas o iluminación pública'),
+(2, 'Limpieza',              'Suciedad o acumulación de residuos'),
+(3, 'Vía pública',           'Problemas en infraestructura vial'),
+(4, 'Parques y jardines',    'Incidencias en zonas verdes'),
+(5, 'Transporte',            'Problemas de tráfico y señalización'),
+(6, 'Agua y saneamiento',    'Fugas o problemas de saneamiento'),
+(7, 'Mobiliario urbano',     'Bancos, papeleras o elementos dañados');
+
+-- ============================================================
+-- TABLA: Subcategoria
+-- ============================================================
+CREATE TABLE Subcategoria (
+    IdSubcategoria   INT AUTO_INCREMENT PRIMARY KEY,
+    IdCategoria      INT          NOT NULL,
+    Nombre           VARCHAR(100) NOT NULL,
+    Descripcion      VARCHAR(200),
+    Icono            VARCHAR(50),
+    Prioridad        VARCHAR(20),
+    created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT FK_Subcategoria_Categoria
+        FOREIGN KEY (IdCategoria) REFERENCES Categoria(IdCategoria)
+        ON UPDATE CASCADE ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+CREATE INDEX idx_subcategoria_categoria ON Subcategoria(IdCategoria);
+
+-- Subcategorías para Alumbrado (1)
+INSERT INTO Subcategoria (IdCategoria, Nombre, Descripcion, Icono, Prioridad) VALUES
+(1, 'Farola apagada',      'Farola sin funcionamiento',      'lamp-off',    'Alta'),
+(1, 'Parpadeo',            'Farola parpadeante',             'flashlight',  'Media'),
+(1, 'Luz débil',           'Iluminación insuficiente',       'sun-dim',     'Baja');
+
+-- Subcategorías para Limpieza (2)
+INSERT INTO Subcategoria (IdCategoria, Nombre, Descripcion, Icono, Prioridad) VALUES
+(2, 'Acumulación de basura','Residuos acumulados en vía',    'trash-2',     'Media'),
+(2, 'Contenedor desbordado','Contenedor lleno',              'trash-alt',   'Alta'),
+(2, 'Grafiti',             'Marcas o pintadas',              'paint-brush', 'Baja');
+
+-- Subcategorías para Vía pública (3)
+INSERT INTO Subcategoria (IdCategoria, Nombre, Descripcion, Icono, Prioridad) VALUES
+(3, 'Baches',              'Deterioro del asfalto',          'alert-circle','Alta'),
+(3, 'Rotura de tubería',   'Rotura de agua o saneamiento',   'water',       'Urgente'),
+(3, 'Socavón',             'Hundimiento del terreno',        'alert-triangle','Urgente'),
+(3, 'Pavimento dañado',    'Losa o adoquín roto',            'square',      'Media');
+
+-- Subcategorías para Parques y jardines (4)
+INSERT INTO Subcategoria (IdCategoria, Nombre, Descripcion, Icono, Prioridad) VALUES
+(4, 'Árbol caído',         'Árbol derribado',                'tree',        'Urgente'),
+(4, 'Rama peligrosa',      'Rama partida o colgante',        'alert-circle','Alta'),
+(4, 'Zona desaseada',      'Parque con suciedad',            'trash-2',     'Media'),
+(4, 'Equipo infantil dañado','Juego roto o peligroso',      'child',       'Alta');
+
+-- Subcategorías para Transporte (5)
+INSERT INTO Subcategoria (IdCategoria, Nombre, Descripcion, Icono, Prioridad) VALUES
+(5, 'Señal de tráfico',    'Señal caída o deteriorada',      'alert-triangle','Alta'),
+(5, 'Semáforo dañado',     'Semáforo no funciona',           'light',       'Urgente'),
+(5, 'Línea de pintura',    'Marcas viales borradas',         'edit-3',      'Media'),
+(5, 'Obstáculo en vía',    'Objeto que impide el paso',      'alert-circle','Alta');
+
+-- Subcategorías para Agua y saneamiento (6)
+INSERT INTO Subcategoria (IdCategoria, Nombre, Descripcion, Icono, Prioridad) VALUES
+(6, 'Fuga de agua potable','Agua limpia derramada',          'water',       'Urgente'),
+(6, 'Fuga de alcantarilla','Agua residual',                  'alert-circle','Urgente'),
+(6, 'Boca de riego',       'Grifo de riego dañado',          'droplet',     'Media'),
+(6, 'Inundación',          'Zona encharcada',                'clouds-rain', 'Urgente');
+
+-- Subcategorías para Mobiliario urbano (7)
+INSERT INTO Subcategoria (IdCategoria, Nombre, Descripcion, Icono, Prioridad) VALUES
+(7, 'Banco dañado',        'Banco roto o deteriorado',       'square',      'Baja'),
+(7, 'Papelera rota',       'Papelera dañada',                'trash-2',     'Media'),
+(7, 'Macetero roto',       'Maceta o jardinera dañada',      'flower-2',    'Baja'),
+(7, 'Fuente apagada',      'Fuente sin agua',                'water',       'Baja');
 
 -- ============================================================
 -- TABLA: Incidencia
@@ -178,6 +243,7 @@ CREATE TABLE Incidencia (
     Direccion         VARCHAR(200),
     IdUsuarioCreador  INT          NOT NULL,
     IdCategoria       INT          NOT NULL,
+    IdSubcategoria    INT          NULL,
     IdServicio        INT          NULL,
     IdTecnicoAsignado INT          NULL,
     Estado            ENUM('Pendiente','Asignada','En proceso','Solucionada') NOT NULL DEFAULT 'Pendiente',
@@ -191,6 +257,9 @@ CREATE TABLE Incidencia (
     CONSTRAINT FK_Incidencia_Categoria
         FOREIGN KEY (IdCategoria) REFERENCES Categoria(IdCategoria)
         ON UPDATE CASCADE ON DELETE RESTRICT,
+    CONSTRAINT FK_Incidencia_Subcategoria
+        FOREIGN KEY (IdSubcategoria) REFERENCES Subcategoria(IdSubcategoria)
+        ON UPDATE CASCADE ON DELETE SET NULL,
     CONSTRAINT FK_Incidencia_Servicio
         FOREIGN KEY (IdServicio) REFERENCES Servicio(IdServicio)
         ON UPDATE CASCADE ON DELETE SET NULL,
@@ -205,18 +274,23 @@ CREATE TABLE Incidencia (
 CREATE INDEX idx_incidencia_estado       ON Incidencia(Estado);
 CREATE INDEX idx_incidencia_creador      ON Incidencia(IdUsuarioCreador);
 CREATE INDEX idx_incidencia_tecnico      ON Incidencia(IdTecnicoAsignado);
+CREATE INDEX idx_incidencia_categoria    ON Incidencia(IdCategoria);
+CREATE INDEX idx_incidencia_subcategoria ON Incidencia(IdSubcategoria);
 CREATE INDEX idx_incidencia_estado_fecha ON Incidencia(Estado, FechaCreacion DESC);
 
-INSERT INTO Incidencia (IdIncidencia, Titulo, Descripcion, FechaCreacion, FechaCierre, Estado, Prioridad, Direccion, IdUsuarioCreador, IdCategoria, IdServicio, IdTecnicoAsignado)
+INSERT INTO Incidencia (IdIncidencia, Titulo, Descripcion, FechaCreacion, FechaCierre, Estado, Prioridad, Direccion, IdUsuarioCreador, IdCategoria, IdSubcategoria, IdServicio, IdTecnicoAsignado)
 VALUES
-(1, 'Farola apagada',   'Farola sin funcionamiento desde hace 3 días', '2024-06-01', '2024-06-03', 'Solucionada', 'Urgente', 'Calle Mayor 15',   1, 1, 1, 3),
-(2, 'Bache en avenida', 'Bache peligroso frente al colegio',           '2024-10-12', NULL,          'En proceso',  'Urgente', 'Av. Andalucía 22', 2, 3, 3, 6),
-(3, 'Basura acumulada', 'Contenedor desbordado',                       '2025-02-18', '2025-02-20', 'Solucionada', 'Media',   'Calle Sol 8',      1, 2, 2, 4),
-(4, 'Banco roto',       'Banco partido en parque central',             '2025-07-05', NULL,          'Asignada',    'Media',   'Parque Central',   2, 7, 7, NULL),
-(5, 'Fuga de agua',     'Agua saliendo de alcantarilla',               '2025-11-11', NULL,          'En proceso',  'Urgente', 'Calle Río 3',      1, 6, 6, 6),
-(6, 'Señal caída',      'Señal de stop caída',                         '2026-01-20', NULL,          'Pendiente',   'Baja',    'Calle Norte 12',   2, 5, 5, NULL),
-(7, 'Limpieza grafiti', 'Grafiti en fachada municipal',                '2026-02-01', NULL,          'Pendiente',   'Media',   'Plaza España 4',   1, 2, 2, 4);
-
+(1,  'Farola apagada en Calle Mayor',        'La farola del numero 15 de Calle Mayor lleva mas de una semana sin funcionar. Representa un riesgo por la escasa visibilidad nocturna.',                       '2024-06-01', '2024-06-03', 'Solucionada', 'Urgente', 'Calle Mayor 15, Pozuelo de Alarcon',              1, 1, 1, 1, 3),
+(2,  'Bache peligroso frente al colegio',    'Existe un bache de gran tamano en el carril derecho de Avenida Andalucia a la altura del colegio. Varios vehiculos han sufrido danos.',                       '2024-10-12', NULL,         'En proceso',  'Urgente', 'Avenida Andalucia 22, Pozuelo de Alarcon',        2, 3, 8, 3, 6),
+(3,  'Contenedor desbordado en Calle Sol',   'El contenedor de basura organica de Calle Sol lleva tres dias sin ser recogido. Genera malos olores y dificulta el paso de peatones.',                        '2025-02-18', '2025-02-20', 'Solucionada', 'Media',   'Calle Sol 8, Pozuelo de Alarcon',                 1, 2, 5, 2, 4),
+(4,  'Banco roto en Parque Central',         'Uno de los bancos de la zona de descanso del Parque Central tiene el respaldo partido. Supone un riesgo de cortes para los usuarios.',                        '2025-07-05', NULL,         'Asignada',    'Media',   'Parque Central, Pozuelo de Alarcon',              2, 7, 25, 7, NULL),
+(5,  'Fuga de agua en Calle Rio',            'Se observa una fuga de agua continua en la acera de Calle Rio. El agua discurre por la calzada y puede causar accidentes o danos en la infraestructura.',     '2025-11-11', NULL,         'En proceso',  'Urgente', 'Calle Rio 3, Pozuelo de Alarcon',                 1, 3, 9, 6, 6),
+(6,  'Senal de stop caida en Calle Norte',   'La senal de stop situada en la interseccion de Calle Norte con Avenida Central ha caido al suelo, probablemente por el viento. Riesgo de accidente de trafico.','2026-01-20', NULL,        'Pendiente',   'Baja',    'Calle Norte 12, Pozuelo de Alarcon',              2, 5, 17, 5, NULL),
+(7,  'Grafiti en fachada del ayuntamiento',  'La fachada lateral del edificio municipal amaneció cubierta de pintadas. Afecta a la imagen del espacio publico y requiere limpieza especializada.',           '2026-02-01', NULL,         'Pendiente',   'Media',   'Plaza de la Constitucion 1, Pozuelo de Alarcon',  1, 2, 7, 2, 4),
+(8,  'Semaforo sin funcionar en Av. Europa', 'El semaforo del cruce de Avenida Europa con Calle Industria no enciende desde esta manana. Genera confusion y riesgo de colision entre vehiculos.',           '2026-03-10', NULL,         'En proceso',  'Urgente', 'Avenida Europa 45, Pozuelo de Alarcon',           2, 5, 18, 5, 3),
+(9,  'Socavon en acera de Calle Pinar',      'Ha aparecido un socavon de aproximadamente 40 cm de diametro en la acera de Calle Pinar. Una persona mayor tropezó ayer. Requiere atencion urgente.',          '2026-03-18', NULL,         'Pendiente',   'Urgente', 'Calle Pinar 7, Pozuelo de Alarcon',               1, 3, 10, 3, NULL),
+(10, 'Arbol caido tras tormenta',            'Un arbol de gran porte ha caido sobre la acera de Paseo del Parque bloqueando parcialmente la calzada. Los servicios de limpieza deben retirarlo.',            '2026-04-02', '2026-04-03', 'Solucionada', 'Urgente', 'Paseo del Parque 12, Pozuelo de Alarcon',         2, 4, 12, 4, 4),
+(11, 'Papelera arrancada en Plaza Mayor',    'La papelera situada junto al banco numero 3 de Plaza Mayor ha sido arrancada de su anclaje. Hay residuos dispersos por el suelo de la plaza.',                '2026-04-08', NULL,         'Pendiente',   'Baja',    'Plaza Mayor, Pozuelo de Alarcon',                 1, 7, 26, 7, NULL));
 -- ============================================================
 -- TABLA: Imagen
 -- ============================================================

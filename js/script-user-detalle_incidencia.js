@@ -48,16 +48,27 @@ function historyItem(update, index, total) {
 }
 
 function renderIncidentDetail(incident) {
+  const displayTitle = window.resolveIncidentDisplayTitle
+    ? window.resolveIncidentDisplayTitle(incident, { maxLength: 90 })
+    : (incident && incident.title ? String(incident.title) : 'Incidencia');
+
   return `
     ${renderNavbar()}
     <div class="max-w-4xl mx-auto px-4 py-8">
       <div class="mb-8">
         <div class="flex items-start justify-between gap-4">
           <div>
-            <h1 class="text-3xl font-extrabold text-slate-900">${getCategoryLabel(incident.category)}</h1>
+            <h1 class="text-3xl font-extrabold text-slate-900">${displayTitle}</h1>
+            <p class="text-slate-600 mt-1">${getCategoryLabel(incident.category)}</p>
             <p class="text-slate-600 mt-1">Incidencia #${incident.id}</p>
           </div>
-          ${getStatusBadge(incident.status)}
+          <div class="flex items-center gap-2">
+            <button id="refreshNowBtnDetail" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
+              <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+              Actualizar ahora
+            </button>
+            ${getStatusBadge(incident.status)}
+          </div>
         </div>
       </div>
 
@@ -128,6 +139,35 @@ function getExternalMapUrl(incident) {
   return `https://www.google.com/maps?q=${encodeURIComponent(location)}`;
 }
 
+let userDetailRefreshTimer = null;
+
+function scheduleUserDetailRefresh() {
+  if (userDetailRefreshTimer) {
+    clearTimeout(userDetailRefreshTimer);
+  }
+
+  userDetailRefreshTimer = setTimeout(() => {
+    render();
+  }, 150);
+}
+
+function startUserDetailAutoRefresh() {
+  window.setInterval(() => {
+    if (document.hidden) return;
+    scheduleUserDetailRefresh();
+  }, 10000);
+}
+
+function setupManualRefreshButton() {
+  const btn = document.getElementById('refreshNowBtnDetail');
+  if (!btn || btn.dataset.bound === 'true') return;
+
+  btn.dataset.bound = 'true';
+  btn.addEventListener('click', () => {
+    scheduleUserDetailRefresh();
+  });
+}
+
 /**
  * LÓGICA DE MAPA E INICIALIZACIÓN
  */
@@ -140,7 +180,7 @@ async function initMapView(incident) {
     const mapUrl = getExternalMapUrl(incident);
     el.innerHTML = `
       <div class="p-4 text-sm text-slate-600 space-y-3">
-        <p>No se pudo localizar esta direccion en el mapa.</p>
+        <p>No se pudo localizar esta dirección en el mapa.</p>
         <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors">
           Ver en Google Maps
         </a>
@@ -176,10 +216,30 @@ async function render() {
     return;
   }
 
+  document.title = `${displayTitleForPage(incident)} - Detalle de Incidencia`;
+
   app.innerHTML = renderIncidentDetail(incident);
   
   if (window.lucide) window.lucide.createIcons();
+  setupManualRefreshButton();
   initMapView(incident);
 }
 
 document.addEventListener('DOMContentLoaded', render);
+document.addEventListener('DOMContentLoaded', startUserDetailAutoRefresh);
+
+window.addEventListener('focus', () => {
+  scheduleUserDetailRefresh();
+});
+
+window.addEventListener('storage', (event) => {
+  if (!event || event.key !== 'urbanIncidents') return;
+  scheduleUserDetailRefresh();
+});
+
+function displayTitleForPage(incident) {
+  if (window.resolveIncidentDisplayTitle) {
+    return window.resolveIncidentDisplayTitle(incident, { maxLength: 70 });
+  }
+  return (incident && incident.title ? String(incident.title) : 'Incidencia').trim();
+}

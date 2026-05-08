@@ -16,6 +16,7 @@ class Incident(Base):
 	Direccion = Column(String(200), nullable=True)
 	IdUsuarioCreador = Column(Integer, nullable=False)
 	IdCategoria = Column(Integer, nullable=False)
+	IdSubcategoria = Column(Integer, nullable=True)
 	IdServicio = Column(Integer, nullable=True)
 	IdTecnicoAsignado = Column(Integer, nullable=True)
 	Estado = Column(

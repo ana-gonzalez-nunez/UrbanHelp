@@ -22,9 +22,32 @@ body {
     min-height: 100%;
 }
 
+html {
+    font-size: 18px;
+}
+
+/* ── Escala tipográfica global ──────────────────────────────────────────
+   Tailwind CDN fija los tamaños en px absolutos (text-xs = 12px, etc.).
+   Redefinimos cada clase para que escalen desde nuestra base de 18px.
+   ─────────────────────────────────────────────────────────────────────── */
+.text-xs   { font-size: 0.8rem  !important; }   /* ~14px */
+.text-sm   { font-size: 0.9rem  !important; }   /* ~16px */
+.text-base { font-size: 1rem    !important; }   /* 18px  */
+.text-lg   { font-size: 1.15rem !important; }   /* ~21px */
+.text-xl   { font-size: 1.3rem  !important; }   /* ~23px */
+.text-2xl  { font-size: 1.6rem  !important; }   /* ~29px */
+.text-3xl  { font-size: 2rem    !important; }   /* 36px  */
+.text-4xl  { font-size: 2.4rem  !important; }   /* ~43px */
+
+/* Clases con tamaño literal que también aparecen en el proyecto */
+.text-\[10px\] { font-size: 0.75rem !important; } /* ~13px */
+.text-\[11px\] { font-size: 0.78rem !important; }
+.text-\[12px\] { font-size: 0.8rem  !important; }
+
 body {
     margin: 0;
     font-family: 'Public Sans', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
     color: var(--uh-ink);
     background:
         radial-gradient(circle at 8% 10%, rgba(81, 161, 108, 0.2), transparent 38%),
@@ -112,7 +135,7 @@ textarea:focus {
 #incidentMap,
 #incidentMapView,
 #incidentMapDetail {
-    min-height: 300px;
+    min-height: 320px;
     border-radius: 14px;
 }
 

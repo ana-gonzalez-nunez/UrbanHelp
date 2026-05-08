@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <base href="http://localhost:8081/">
+
     <title>Iniciar sesión | UrbanHelp</title>
     <link rel="stylesheet" href="./css/style_login.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -117,21 +117,49 @@
             loginMessage.className = `login-message ${type ? `is-${type}` : ''}`;
         }
 
-        function saveSession(role, email) {
+        function normalizeRole(role) {
+            return String(role || '').trim().toLowerCase();
+        }
+
+        function resolveRouteForLogin(email, role) {
+            const normalizedRole = normalizeRole(role);
+            const normalizedEmail = String(email || '').trim().toLowerCase();
+
+            if (normalizedRole === 'admin') return 'admin.html';
+            if (normalizedRole === 'tecnico' || normalizedEmail.includes('tecnico')) return 'tecnico.html';
+            return 'user.html';
+        }
+
+        function saveSession(role, email, nombre = '') {
             const sessionPayload = JSON.stringify({
                 role,
                 email,
+                nombre,
                 loginAt: new Date().toISOString()
             });
 
             try {
-                const storage = rememberSession.checked ? localStorage : sessionStorage;
-                const fallbackStorage = rememberSession.checked ? sessionStorage : localStorage;
+                // Por defecto guardar en localStorage para persistencia
+                const storage = localStorage;
+                const fallbackStorage = sessionStorage;
 
                 fallbackStorage.removeItem('urbanHelpSession');
                 storage.setItem('urbanHelpSession', sessionPayload);
             } catch (error) {
                 console.warn('No se pudo guardar la sesión en el navegador.', error);
+            }
+        }
+
+        async function resolveSessionName(email) {
+            try {
+                if (!window.userApi || typeof window.userApi.getByEmail !== 'function') {
+                    return '';
+                }
+
+                const user = await window.userApi.getByEmail(email);
+                return user && user.nombre ? String(user.nombre).trim() : '';
+            } catch {
+                return '';
             }
         }
 
@@ -175,7 +203,7 @@
                         email,
                         contrasena: password
                     });
-                    role = loginResponse.role || 'user';
+                    role = normalizeRole(loginResponse.role) || 'user';
                 }
             } catch (error) {
                 const details = (error && error.message ? error.message : '').toLowerCase();
@@ -189,11 +217,12 @@
                 return;
             }
 
-            saveSession(role, email);
+            const sessionName = await resolveSessionName(email);
+            saveSession(role, email, sessionName);
             showMessage('Acceso correcto. Redirigiendo…', 'success');
 
             window.setTimeout(() => {
-                window.location.href = routeByRole[role] || 'user.html';
+                window.location.href = resolveRouteForLogin(email, role);
             }, 500);
         });
     </script>

@@ -26,6 +26,7 @@ refreshIncidentsList();
 let statusFilter = 'todos';
 let categoryFilter = 'todos';
 let chartInstance = null;
+let technicianRefreshInterval = null;
 
 // ============ HELPERS ============
 function getStatusColor(status) {
@@ -402,7 +403,7 @@ function renderDashboard() {
                         </p>
                     </div>
                     <div class="hidden md:flex items-center gap-3">
-                        <a href="perfil-tecnico.html" class="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors" title="Ir a mi perfil" aria-label="Ir a mi perfil">
+                        <a href="perfil-tecnico.html?v=20260508a" class="inline-flex items-center justify-center w-11 h-11 rounded-xl border border-slate-300 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:text-slate-900 transition-colors" title="Ir a mi perfil" aria-label="Ir a mi perfil">
                             <i data-lucide="user-circle-2" class="w-5 h-5"></i>
                         </a>
                         <div class="flex items-center gap-3 bg-gradient-to-br from-indigo-600 via-blue-600 to-cyan-600 text-white px-6 py-3 rounded-xl shadow-lg">
@@ -520,6 +521,7 @@ function renderDashboard() {
                         <thead>
                             <tr class="bg-slate-50 border-b">
                                 <th class="px-6 py-4 text-sm">ID</th>
+                                <th class="px-6 py-4 text-sm">Título</th>
                                 <th class="px-6 py-4 text-sm">Categoría</th>
                                 <th class="px-6 py-4 text-sm">Ubicación</th>
                                 <th class="px-6 py-4 text-sm">Prioridad</th>
@@ -530,11 +532,12 @@ function renderDashboard() {
                         <tbody>
                             ${filtered.length === 0 ? `
                                 <tr>
-                                    <td colspan="6" class="px-6 py-10 text-center text-sm text-slate-500">No tienes incidencias asignadas actualmente.</td>
+                                    <td colspan="7" class="px-6 py-10 text-center text-sm text-slate-500">No tienes incidencias asignadas actualmente.</td>
                                 </tr>
                             ` : filtered.map(inc => `
                                 <tr class="hover:bg-indigo-50/50 border-b">
                                     <td class="px-6 py-4 font-bold text-indigo-600 cursor-pointer" onclick="openIncident('${inc.id}')" title="Ver detalles">${inc.id}</td>
+                                    <td class="px-6 py-4 text-sm font-semibold cursor-pointer" onclick="openIncident('${inc.id}')">${window.resolveIncidentDisplayTitle ? window.resolveIncidentDisplayTitle(inc, { maxLength: 80 }) : inc.title || 'Incidencia sin título'}</td>
                                     <td class="px-6 py-4 text-sm cursor-pointer" onclick="openIncident('${inc.id}')">${inc.category}</td>
                                     <td class="px-6 py-4 text-sm cursor-pointer" onclick="openIncident('${inc.id}')">${inc.location}</td>
                                     <td class="px-6 py-4">${getPriorityBadge(inc.priority)}</td>
@@ -592,8 +595,25 @@ window.addEventListener('pageshow', () => {
     refreshTechnicianDashboard();
 });
 
+window.addEventListener('focus', () => {
+    refreshTechnicianDashboard();
+});
+
 window.addEventListener('storage', (event) => {
-    if (!event || event.key === 'urbanHelpIncidents' || event.key === 'urbanHelpIncidentsApiCache') {
+    if (!event || event.key === 'urbanIncidents') {
         refreshTechnicianDashboard();
     }
 });
+
+function startTechnicianAutoRefresh() {
+    if (technicianRefreshInterval) {
+        clearInterval(technicianRefreshInterval);
+    }
+
+    technicianRefreshInterval = setInterval(() => {
+        if (document.hidden) return;
+        refreshTechnicianDashboard();
+    }, 10000);
+}
+
+startTechnicianAutoRefresh();

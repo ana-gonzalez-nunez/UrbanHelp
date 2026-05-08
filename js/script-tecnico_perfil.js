@@ -57,7 +57,7 @@ function saveStoredProfile(email, profile) {
 function getDefaultProfile(email) {
   return {
     id: '',
-    fullName: 'Tecnico',
+    fullName: 'Técnico',
     role: 'tecnico',
     email: email || '',
     phone: '',
@@ -77,6 +77,7 @@ function getDefaultProfile(email) {
 
 async function loadProfile() {
   const session = getSessionInfo();
+  const sessionName = String(session.nombre || session.fullName || '').trim();
   const currentEmail = (session.email || '').toLowerCase();
   const stored = getStoredProfile(currentEmail);
   const base = getDefaultProfile(currentEmail);
@@ -88,7 +89,7 @@ async function loadProfile() {
         ...base,
         ...stored,
         id: String(user.id || ''),
-        fullName: user.nombre || base.fullName,
+        fullName: user.nombre || sessionName || base.fullName,
         role: user.role || 'tecnico',
         email: user.email || currentEmail,
         phone: user.telefono || stored.phone || ''
@@ -97,6 +98,7 @@ async function loadProfile() {
       return {
         ...base,
         ...stored,
+        fullName: stored.fullName || sessionName || base.fullName,
         email: currentEmail || stored.email || ''
       };
     }
@@ -104,7 +106,8 @@ async function loadProfile() {
 
   return {
     ...base,
-    ...stored
+    ...stored,
+    fullName: stored.fullName || sessionName || base.fullName
   };
 }
 
@@ -170,7 +173,7 @@ async function renderStats(profile) {
   ].join('');
 
   if (profile.fullName) {
-    document.title = `Perfil tecnico - ${profile.fullName}`;
+    document.title = `Perfil técnico - ${profile.fullName}`;
   }
 }
 
@@ -237,7 +240,7 @@ async function init() {
 
     fillForm(profile);
     await renderStats(profile);
-    showSavedMessage('Perfil tecnico guardado correctamente.', false);
+    showSavedMessage('Perfil técnico guardado correctamente.', false);
   });
 
   document.getElementById('resetTechProfile').addEventListener('click', async () => {

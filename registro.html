@@ -3,10 +3,102 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <base href="http://localhost:8081/">
+
     <title>Registro | UrbanHelp</title>
     <link rel="stylesheet" href="./css/style_registro.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        /* ── Password strength indicator ── */
+        .password-strength-wrapper {
+            display: none;
+            width: 100%;
+            flex-direction: column;
+            gap: 8px;
+            padding: 10px 14px 12px;
+            background: rgba(0,0,0,0.04);
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.08);
+            margin-top: 4px;
+        }
+        .password-strength-wrapper.visible { display: flex; }
+
+        .strength-bar-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(0,0,0,0.10);
+            border-radius: 99px;
+            overflow: hidden;
+        }
+        .strength-bar-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 99px;
+            transition: width 0.4s cubic-bezier(.4,0,.2,1), background-color 0.4s ease;
+        }
+        .strength-bar-fill.s1 { width: 25%; background: #e53e3e; }
+        .strength-bar-fill.s2 { width: 50%; background: #f6ad55; }
+        .strength-bar-fill.s3 { width: 75%; background: #68d391; }
+        .strength-bar-fill.s4 { width: 100%; background: #38a169; }
+
+        .strength-meta { display: flex; flex-direction: column; gap: 6px; }
+
+        .strength-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            transition: color 0.3s;
+        }
+        .strength-label.s1 { color: #e53e3e; }
+        .strength-label.s2 { color: #dd8500; }
+        .strength-label.s3 { color: #276749; }
+        .strength-label.s4 { color: #276749; }
+
+        .strength-criteria { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+        .criterion {
+            font-size: 0.75rem;
+            color: #999;
+            display: flex; align-items: center; gap: 4px;
+            transition: color 0.25s;
+        }
+        .criterion i { font-size: 0.7rem; transition: color 0.25s; }
+        .criterion.met { color: #276749; }
+        .criterion.met i { color: #38a169; }
+        .criterion.met i::before { content: "\f00c"; }
+
+        /* ── Contenedor contraseña con botón ojo ── */
+        .field-password-wrap {
+            position: relative;
+            display: flex;
+            align-items: center;
+            width: 100%;
+        }
+        .field-password-wrap input {
+            width: 100%;
+            padding-right: 38px;
+        }
+        .toggle-pass {
+            position: absolute;
+            right: 10px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #aaa;
+            font-size: 0.85rem;
+            padding: 4px;
+            line-height: 1;
+            transition: color 0.2s;
+        }
+        .toggle-pass:hover { color: #555; }
+
+        /* ── Bloque contraseña ocupa celda completa en flex ── */
+        .field.password-block {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0;
+        }
+        .field.password-block > .field-password-wrap { flex: 1; }
+    </style>
 </head>
 <body>
     <div class="register-card">
@@ -51,9 +143,28 @@
                         <input type="email" name="email" placeholder="Correo electrónico" maxlength="150" required>
                     </div>
 
-                    <div class="field">
-                        <i class="fa-solid fa-lock" aria-hidden="true"></i>
-                        <input type="password" name="contrasena" placeholder="Contraseña" maxlength="255" required minlength="6">
+                    <div class="field wide password-block">
+                        <div class="field-password-wrap">
+                            <i class="fa-solid fa-lock" aria-hidden="true"></i>
+                            <input type="password" id="contrasenaInput" name="contrasena" placeholder="Contraseña" maxlength="255" required minlength="6">
+                            <button type="button" class="toggle-pass" id="togglePass" aria-label="Mostrar u ocultar contraseña">
+                                <i class="fa-regular fa-eye" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <div class="password-strength-wrapper" id="passwordStrengthWrapper">
+                            <div class="strength-bar-track">
+                                <div class="strength-bar-fill" id="strengthBarFill"></div>
+                            </div>
+                            <div class="strength-meta">
+                                <span class="strength-label" id="strengthLabel">Muy débil</span>
+                                <div class="strength-criteria">
+                                    <span class="criterion" id="crit-length"><i class="fa-solid fa-xmark"></i> 8+ caracteres</span>
+                                    <span class="criterion" id="crit-upper"><i class="fa-solid fa-xmark"></i> Mayúscula</span>
+                                    <span class="criterion" id="crit-number"><i class="fa-solid fa-xmark"></i> Número</span>
+                                    <span class="criterion" id="crit-special"><i class="fa-solid fa-xmark"></i> Especial</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="field">
@@ -81,8 +192,8 @@
     <script src="./js/user-data.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const registroForm = document.getElementById('registroForm');
-            const rolSelect = document.getElementById('rolSelect');
+            const registroForm  = document.getElementById('registroForm');
+            const rolSelect     = document.getElementById('rolSelect');
             const registerNotice = document.getElementById('registerNotice');
 
             function showNotice(message) {
@@ -90,61 +201,103 @@
                 registerNotice.classList.add('is-visible');
             }
 
-            if (!registroForm || !rolSelect) {
-                return;
-            }
+            if (!registroForm || !rolSelect) return;
 
+            // ── Toggle mostrar/ocultar contraseña ──
+            const togglePass = document.getElementById('togglePass');
+            togglePass.addEventListener('click', () => {
+                const show = passInput.type === 'password';
+                passInput.type = show ? 'text' : 'password';
+                togglePass.innerHTML = show
+                    ? '<i class="fa-regular fa-eye-slash" aria-hidden="true"></i>'
+                    : '<i class="fa-regular fa-eye" aria-hidden="true"></i>';
+            });
+
+            // ── Password strength ──
+            const passInput   = document.getElementById('contrasenaInput');
+            const wrapper     = document.getElementById('passwordStrengthWrapper');
+            const bar         = document.getElementById('strengthBarFill');
+            const label       = document.getElementById('strengthLabel');
+
+            const criteria = {
+                length:  { el: document.getElementById('crit-length'),  test: v => v.length >= 8 },
+                upper:   { el: document.getElementById('crit-upper'),   test: v => /[A-Z]/.test(v) },
+                number:  { el: document.getElementById('crit-number'),  test: v => /[0-9]/.test(v) },
+                special: { el: document.getElementById('crit-special'), test: v => /[^A-Za-z0-9]/.test(v) },
+            };
+
+            const LEVELS = [
+                { cls: 's1', text: 'Muy débil' },
+                { cls: 's2', text: 'Débil'      },
+                { cls: 's3', text: 'Buena'      },
+                { cls: 's4', text: 'Fuerte 🔒'  },
+            ];
+
+            passInput.addEventListener('input', () => {
+                const val = passInput.value;
+                if (!val) { wrapper.classList.remove('visible'); return; }
+                wrapper.classList.add('visible');
+
+                let score = 0;
+                for (const key in criteria) {
+                    const c = criteria[key]; const ok = c.test(val);
+                    c.el.classList.toggle('met', ok);
+                    if (ok) score++;
+                }
+
+                bar.classList.remove('s1','s2','s3','s4');
+                label.classList.remove('s1','s2','s3','s4');
+
+                if (score > 0) {
+                    const lvl = LEVELS[score - 1];
+                    bar.classList.add(lvl.cls);
+                    label.classList.add(lvl.cls);
+                    label.textContent = lvl.text;
+                } else {
+                    label.textContent = 'Muy débil';
+                }
+            });
+
+            // ── Submit ──
             registroForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
-
                 if (!registroForm.checkValidity()) {
                     showNotice('Revisa los campos obligatorios antes de continuar.');
                     return;
                 }
 
-                const formData = new FormData(registroForm);
-                const nombre = (formData.get('nombre') || '').toString().trim();
-                const apellido1 = (formData.get('apellido_1') || '').toString().trim();
-                const apellido2 = (formData.get('apellido_2') || '').toString().trim();
-                const email = (formData.get('email') || '').toString().trim().toLowerCase();
+                const formData   = new FormData(registroForm);
+                const nombre     = (formData.get('nombre')     || '').toString().trim();
+                const apellido1  = (formData.get('apellido_1') || '').toString().trim();
+                const apellido2  = (formData.get('apellido_2') || '').toString().trim();
+                const email      = (formData.get('email')      || '').toString().trim().toLowerCase();
                 const contrasena = (formData.get('contrasena') || '').toString();
-                const telefono = (formData.get('telefono') || '').toString().trim();
-                const rol = (formData.get('rol') || '').toString().trim();
+                const telefono   = (formData.get('telefono')   || '').toString().trim();
+                const rol        = (formData.get('rol')        || '').toString().trim();
 
                 try {
                     if (window.userApi && typeof window.userApi.register === 'function') {
-                        await window.userApi.register({
-                            nombre,
-                            apellido_1: apellido1,
-                            apellido_2: apellido2,
-                            email,
-                            contrasena,
-                            telefono,
-                            rol
-                        });
+                        await window.userApi.register({ nombre, apellido_1: apellido1, apellido_2: apellido2, email, contrasena, telefono, rol });
                     }
                 } catch (error) {
                     const rawMessage = (error && error.message ? error.message : '').trim();
                     const text = rawMessage.toLowerCase();
-                    if (text.includes('409') || text.includes('existe')) {
+                    if (text.includes('409') || text.includes('existe'))
                         showNotice('Ya existe una cuenta con este correo.');
-                    } else if (text.includes('failed to fetch') || text.includes('networkerror') || text.includes('network')) {
-                        showNotice('No hay conexion con el backend. Verifica que este levantado en http://localhost:8080.');
-                    } else {
-                        showNotice(rawMessage ? `No se pudo completar el registro: ${rawMessage}` : 'No se pudo completar el registro. Intentalo de nuevo.');
-                    }
+                    else if (text.includes('failed to fetch') || text.includes('networkerror') || text.includes('network'))
+                        showNotice('No hay conexión con el backend. Verifica que esté levantado en http://localhost:8080.');
+                    else
+                        showNotice(rawMessage ? `No se pudo completar el registro: ${rawMessage}` : 'No se pudo completar el registro. Inténtalo de nuevo.');
                     return;
                 }
 
                 if (rolSelect.value === 'tecnico') {
                     showNotice('Registro completado. Tu cuenta técnica queda pendiente de aprobación por un administrador.');
-                    window.setTimeout(() => {
-                        window.location.href = 'login.html';
-                    }, 1300);
+                    window.setTimeout(() => { window.location.href = 'login.html'; }, 1300);
                     return;
                 }
 
-                showNotice('Registro completado. Redirigiendo al inicio de sesion...');
+                showNotice('Registro completado. Redirigiendo al inicio de sesión...');
                 window.setTimeout(() => {
                     window.location.href = 'login.html';
                 }, 1000);

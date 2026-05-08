@@ -90,67 +90,192 @@ function showSavedMessage() {
   }
 }
 
+function getSessionInfo() {
+  const local = localStorage.getItem('urbanHelpSession');
+  const session = sessionStorage.getItem('urbanHelpSession');
+  const raw = local || session;
+  if (!raw) return {};
+
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return {};
+  }
+}
+
+function saveSessionInfo(email) {
+  const normalizedEmail = String(email || '').trim().toLowerCase();
+  if (!normalizedEmail) return;
+
+  const currentSession = getSessionInfo();
+  const updatedSession = {
+    ...currentSession,
+    email: normalizedEmail,
+  };
+  const serialized = JSON.stringify(updatedSession);
+
+  try {
+    localStorage.setItem('urbanHelpSession', serialized);
+  } catch {
+    // Ignore storage failures; sessionStorage still keeps the active tab in sync.
+  }
+
+  try {
+    sessionStorage.setItem('urbanHelpSession', serialized);
+  } catch {
+    // Ignore storage failures in restricted browsing contexts.
+  }
+}
+
+async function loadProfile() {
+  const current = typeof getUserProfile === 'function' ? getUserProfile() : {};
+  const sessionInfo = getSessionInfo();
+  const sessionName = String(sessionInfo.nombre || sessionInfo.fullName || '').trim();
+  const sessionEmail = String(sessionInfo.email || '').trim().toLowerCase();
+
+  if (!sessionEmail || !window.userApi || typeof window.userApi.getByEmail !== 'function') {
+    return {
+      ...current,
+      fullName: current.fullName || sessionName || '',
+      email: current.email || sessionEmail || '',
+    };
+  }
+
+  try {
+    const user = await window.userApi.getByEmail(sessionEmail);
+    return {
+      ...current,
+      id: String(user.id || current.id || ''),
+      fullName: user.nombre || sessionName || current.fullName || '',
+      email: user.email || sessionEmail,
+      phone: user.telefono || current.phone || '',
+      address: current.address || '',
+      postalCode: current.postalCode || '',
+      city: current.city || '',
+      notificationsEnabled: typeof current.notificationsEnabled === 'boolean' ? current.notificationsEnabled : true,
+    };
+  } catch {
+    return {
+      ...current,
+      fullName: current.fullName || sessionName || '',
+      email: current.email || sessionEmail,
+    };
+  }
+}
+
 /**
  * Función de inicio
  */
-function init() {
+async function init() {
   // Verificamos que las funciones de user-data.js existan
   if (typeof getUserProfile !== 'function') {
     console.error("La función 'getUserProfile' no está definida en user-data.js");
     return;
   }
 
-  const profile = getUserProfile();
+  let profile = await loadProfile();
+  if (typeof saveUserProfile === 'function') {
+    saveUserProfile(profile);
+  }
   fillForm(profile);
   renderStats(profile);
 
   // Manejo del guardado
-  document.getElementById('profileForm').addEventListener('submit', (event) => {
+  document.getElementById('profileForm').addEventListener('submit', async (event) => {
     event.preventDefault();
     const updatedProfile = readForm();
+    const previousEmail = (profile && profile.email ? profile.email : '').trim().toLowerCase();
+    const nextEmail = (updatedProfile.email || '').trim().toLowerCase();
     
-    if (typeof saveUserProfile === 'function') {
-      saveUserProfile(updatedProfile);
-      renderStats(updatedProfile);
-      showSavedMessage();
+    if (window.userApi && profile.id && typeof window.userApi.updateProfile === 'function') {
+      try {
+        const updated = await window.userApi.updateProfile(profile.id, {
+          email: updatedProfile.email,
+          telefono: updatedProfile.phone
+        });
+        profile = {
+          ...updatedProfile,
+          id: String(updated.id || profile.id || ''),
+          fullName: updated.nombre || updatedProfile.fullName,
+          email: updated.email || updatedProfile.email,
+          phone: updated.telefono || updatedProfile.phone,
+        };
+      } catch (error) {
+        const details = error && error.message ? error.message : 'No se pudo guardar en servidor';
+        console.error(details);
+        return;
+      }
+    } else {
+      profile = { ...updatedProfile };
     }
+
+    if (previousEmail && previousEmail !== nextEmail && window.getUserProfileStorageKey) {
+      localStorage.removeItem(window.getUserProfileStorageKey(previousEmail));
+    }
+
+    if (nextEmail) {
+      saveSessionInfo(nextEmail);
+    }
+
+    if (typeof saveUserProfile === 'function') {
+      saveUserProfile(profile);
+    }
+
+    fillForm(profile);
+    renderStats(profile);
+    showSavedMessage();
   });
 
   // Manejo del reseteo
   document.getElementById('resetProfile').addEventListener('click', () => {
-    localStorage.removeItem('userProfile');
-    const reset = getUserProfile();
-    fillForm(reset);
-    renderStats(reset);
+    const email = (profile && profile.email ? profile.email : '').trim().toLowerCase();
+    if (window.getUserProfileStorageKey && email) {
+      localStorage.removeItem(window.getUserProfileStorageKey(email));
+    }
+
+    loadProfile().then((reset) => {
+      profile = reset;
+      if (typeof saveUserProfile === 'function') {
+        saveUserProfile(profile);
+      }
+      fillForm(profile);
+      renderStats(profile);
+    });
   });
 
+  setupLogout();
   window.lucide.createIcons();
 }
 
-// Dentro de tu función init o al final del script
-const logoutBtn = document.getElementById('logoutBtn');
-if (logoutBtn) {
+function setupLogout() {
+  const logoutBtn = document.getElementById('logoutBtn');
+  if (!logoutBtn) return;
+
   logoutBtn.addEventListener('click', async () => {
     const confirmed = window.confirmLogoutModal
       ? await window.confirmLogoutModal({
-        title: 'Cerrar sesion',
-        message: '¿Deseas cerrar sesion ahora?',
-        confirmText: 'Si, cerrar',
-        cancelText: 'Cancelar'
-      })
-      : window.confirm('¿Deseas cerrar sesión?');
+          title: 'Cerrar sesion',
+          message: '¿Deseas cerrar sesion ahora?',
+          confirmText: 'Si, cerrar',
+          cancelText: 'Cancelar'
+        })
+      : window.confirm('¿Deseas cerrar sesion?');
+
     if (!confirmed) return;
 
-    // Borramos los datos de sesión si fuera necesario
-    // localStorage.removeItem('userProfile'); 
+    try {
+      localStorage.removeItem('urbanHelpSession');
+    } catch {
+      // Ignore storage failures.
+    }
 
-    // Efecto de salida simple
-    document.body.style.opacity = '0';
-    document.body.style.transition = 'opacity 0.5s';
+    try {
+      sessionStorage.removeItem('urbanHelpSession');
+    } catch {
+      // Ignore storage failures.
+    }
 
-    setTimeout(() => {
-      window.location.href = 'login.html'; 
-    }, 500);
+    window.location.href = 'login.html';
   });
 }
 

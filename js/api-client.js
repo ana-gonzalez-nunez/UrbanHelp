@@ -1,13 +1,12 @@
 function resolveApiBase() {
   const protocol = window.location.protocol;
-  const port = window.location.port;
 
-  // Running from file:// or a dev server without reverse proxy.
-  if (protocol === 'file:' || (port && port !== '80' && port !== '443')) {
+  // Running from file:// without a reverse proxy.
+  if (protocol === 'file:') {
     return 'http://localhost:8080/api';
   }
 
-  // Default when served by nginx container with /api proxy.
+  // Default when served from any HTTP origin with the nginx /api proxy.
   return '/api';
 }
 
@@ -65,6 +64,9 @@ window.incidentApi = {
   },
   async getById(id) {
     return apiFetch(`/incidents/${encodeURIComponent(id)}`);
+  },
+  async getCategoriesWithSubcategories() {
+    return apiFetch('/incidents/categories/with-subcategories');
   },
   async create(payload) {
     return apiFetch('/incidents', {

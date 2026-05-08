@@ -2,6 +2,24 @@
  * ESTADO GLOBAL
  */
 let selectedFilter = 'todas';
+let userIncidentsRefreshTimer = null;
+
+function scheduleUserIncidentsRefresh() {
+  if (userIncidentsRefreshTimer) {
+    clearTimeout(userIncidentsRefreshTimer);
+  }
+
+  userIncidentsRefreshTimer = setTimeout(() => {
+    render();
+  }, 120);
+}
+
+function startUserIncidentsAutoRefresh() {
+  window.setInterval(() => {
+    if (document.hidden) return;
+    scheduleUserIncidentsRefresh();
+  }, 10000);
+}
 
 /**
  * COMPONENTES DE INTERFAZ
@@ -61,9 +79,15 @@ function renderPageContent() {
       </div>
 
       <div class="bg-white border border-slate-200 rounded-2xl p-5 mb-6 shadow-sm">
-        <div class="flex items-center gap-2 mb-3">
-          <i data-lucide="filter" class="w-5 h-5 text-slate-600"></i>
-          <h2 class="font-semibold text-slate-900">Filtrar por estado</h2>
+        <div class="flex items-center justify-between gap-3 mb-3">
+          <div class="flex items-center gap-2">
+            <i data-lucide="filter" class="w-5 h-5 text-slate-600"></i>
+            <h2 class="font-semibold text-slate-900">Filtrar por estado</h2>
+          </div>
+          <button id="refreshNowBtn" type="button" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-700 text-sm font-semibold hover:bg-slate-50 transition-colors">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            Actualizar ahora
+          </button>
         </div>
         <div class="flex flex-wrap gap-2">
           <button onclick="setFilter('todas')" class="px-4 py-2 rounded-xl font-semibold shadow-sm transition-colors ${getFilterButtonClass('todas')}">Todas (${incidents.length})</button>
@@ -119,13 +143,23 @@ function setupLogout() {
             confirmText: 'Si, cerrar',
             cancelText: 'Cancelar'
           })
-        : confirm("¿Deseas cerrar sesión?");
+        : confirm("¿Deseas cerrar sesion?");
 
       if (confirmed) {
         window.location.href = 'login.html';
       }
     });
   }
+}
+
+function setupManualRefreshButton() {
+  const btn = document.getElementById('refreshNowBtn');
+  if (!btn || btn.dataset.bound === 'true') return;
+
+  btn.dataset.bound = 'true';
+  btn.addEventListener('click', () => {
+    scheduleUserIncidentsRefresh();
+  });
 }
 
 /**
@@ -139,7 +173,18 @@ async function render() {
   document.getElementById('app').innerHTML = renderPageContent();
   renderList();
   setupLogout();
+  setupManualRefreshButton();
   if (window.lucide) window.lucide.createIcons();
 }
 
 document.addEventListener('DOMContentLoaded', render);
+document.addEventListener('DOMContentLoaded', startUserIncidentsAutoRefresh);
+
+window.addEventListener('focus', () => {
+  scheduleUserIncidentsRefresh();
+});
+
+window.addEventListener('storage', (event) => {
+  if (!event || event.key !== 'urbanIncidents') return;
+  scheduleUserIncidentsRefresh();
+});
