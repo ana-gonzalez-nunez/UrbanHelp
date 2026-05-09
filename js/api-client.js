@@ -44,7 +44,7 @@ async function apiFetch(path, options) {
   } catch (error) {
     if (API_BASE === '/api') {
       // Fallback for cases where frontend is not behind nginx proxy.
-      const fallbackResponse = await fetch(`${getApiBase()}${path}`, requestOptions);
+      const fallbackResponse = await fetch(`${window.getApiBase ? window.getApiBase() : "https://urbanhelp-production.up.railway.app/api"}${path}`, requestOptions);
       if (!fallbackResponse.ok) {
         let fallbackDetails = '';
         try {
