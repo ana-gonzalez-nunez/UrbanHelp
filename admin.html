@@ -147,9 +147,6 @@
             };
             const entry = map[status] || ['bg-gray-100 text-gray-600', status || 'Desconocido'];
             return '<span class="px-2 py-1 rounded-full text-xs font-semibold ' + entry[0] + '">' + entry[1] + '</span>';
-        };
-            const [cls, label] = map[status] || ['bg-gray-100 text-gray-600', status || 'Desconocido'];
-            return `<span class="px-2 py-1 rounded-full text-xs font-semibold ${cls}">${label}</span>`;
         }
 
         async function switchTab(tabId, id = null) {
