@@ -3,7 +3,11 @@ function resolveApiBase() {
 
   // Running from file:// without a reverse proxy.
   if (protocol === 'file:') {
-    return 'http://localhost:8080/api';
+    const host = window.location.hostname;
+    if (host === 'localhost' || host === '127.0.0.1') {
+        return 'http://localhost:8080/api';
+    }
+    return 'https://urbanhelp-production.up.railway.app/api';
   }
 
   // Default when served from any HTTP origin with the nginx /api proxy.
@@ -40,7 +44,7 @@ async function apiFetch(path, options) {
   } catch (error) {
     if (API_BASE === '/api') {
       // Fallback for cases where frontend is not behind nginx proxy.
-      const fallbackResponse = await fetch(`http://localhost:8080/api${path}`, requestOptions);
+      const fallbackResponse = await fetch(`${getApiBase()}${path}`, requestOptions);
       if (!fallbackResponse.ok) {
         let fallbackDetails = '';
         try {
