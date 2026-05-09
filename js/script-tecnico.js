@@ -595,9 +595,7 @@ window.addEventListener('pageshow', () => {
     refreshTechnicianDashboard();
 });
 
-window.addEventListener('focus', () => {
-    refreshTechnicianDashboard();
-});
+// focus refresh eliminado
 
 window.addEventListener('storage', (event) => {
     if (!event || event.key === 'urbanIncidents') {
@@ -605,15 +603,4 @@ window.addEventListener('storage', (event) => {
     }
 });
 
-function startTechnicianAutoRefresh() {
-    if (technicianRefreshInterval) {
-        clearInterval(technicianRefreshInterval);
-    }
-
-    technicianRefreshInterval = setInterval(() => {
-        if (document.hidden) return;
-        refreshTechnicianDashboard();
-    }, 10000);
-}
-
-startTechnicianAutoRefresh();
+// auto-refresh eliminado

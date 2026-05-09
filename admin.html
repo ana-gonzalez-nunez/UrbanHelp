@@ -131,20 +131,23 @@
             return !!(incident && incident.assignedTechnician && String(incident.assignedTechnician).trim());
         }
 
-                function resolveIncidentDisplayTitle(incident) {
-            var t = incident.titulo || incident.title || incident.description || '';
-            return String(t).trim().slice(0, 80) || 'Incidencia sin titulo';
+        function resolveIncidentDisplayTitle(incident) {
+            if (!incident) return 'Incidencia sin título';
+            if (incident.titulo) return String(incident.titulo).trim() || 'Incidencia sin título';
+            if (incident.title)  return String(incident.title).trim()  || 'Incidencia sin título';
+            return 'Incidencia sin título';
         }
 
-                function getStatusBadge(status) {
+        function getStatusBadge(status) {
+            if (window.getStatusBadge) return window.getStatusBadge(status);
             const map = {
                 'pendiente':  ['bg-yellow-100 text-yellow-800', 'Pendiente'],
-                'en-proceso': ['bg-blue-100 text-blue-800', 'En proceso'],
+                'en-proceso': ['bg-blue-100 text-blue-800',   'En proceso'],
                 'resuelta':   ['bg-green-100 text-green-800', 'Resuelta'],
-                'cerrada':    ['bg-gray-100 text-gray-600', 'Cerrada'],
+                'cerrada':    ['bg-gray-100 text-gray-600',   'Cerrada'],
             };
-            const entry = map[status] || ['bg-gray-100 text-gray-600', status || 'Desconocido'];
-            return '<span class="px-2 py-1 rounded-full text-xs font-semibold ' + entry[0] + '">' + entry[1] + '</span>';
+            const [cls, label] = map[status] || ['bg-gray-100 text-gray-600', status || 'Desconocido'];
+            return `<span class="px-2 py-1 rounded-full text-xs font-semibold ${cls}">${label}</span>`;
         }
 
         async function switchTab(tabId, id = null) {
@@ -160,67 +163,10 @@
             renderApp();
         }
 
-        function stopIncidentsAutoRefresh() {
-            if (incidentsRefreshTimer) clearInterval(incidentsRefreshTimer);
-            incidentsRefreshTimer = null;
-        }
-
-        function startIncidentsAutoRefresh() {
-            stopIncidentsAutoRefresh();
-
-            // Fallback refresh when SSE is unavailable.
-            incidentsRefreshTimer = setInterval(async () => {
-                if (document.hidden) return;
-                await syncIncidentsAndRerender();
-            }, 5000);
-        }
-
-        function stopIncidentsRealtimeUpdates() {
-            if (incidentsEventSource) {
-                incidentsEventSource.close();
-                incidentsEventSource = null;
-            }
-            incidentsRealtimeConnected = false;
-        }
-
-        function resolveIncidentsStreamUrl() {
-            const protocol = window.location.protocol;
-            const port = window.location.port;
-
-            if (protocol === 'file:' || (port && port !== '80' && port !== '443' && port !== '8081')) {
-                return 'http://localhost:8080/api/incidents/stream';
-            }
-
-            return '/api/incidents/stream';
-        }
-
-        function startIncidentsRealtimeUpdates() {
-            if (!window.EventSource) {
-                startIncidentsAutoRefresh();
-                return;
-            }
-
-            stopIncidentsRealtimeUpdates();
-
-            const streamUrl = resolveIncidentsStreamUrl();
-            incidentsEventSource = new EventSource(streamUrl);
-
-            incidentsEventSource.addEventListener('connected', async () => {
-                incidentsRealtimeConnected = true;
-                stopIncidentsAutoRefresh();
-                await syncIncidentsAndRerender();
-            });
-
-            incidentsEventSource.addEventListener('incidents-updated', async () => {
-                if (document.hidden) return;
-                await syncIncidentsAndRerender();
-            });
-
-            incidentsEventSource.onerror = () => {
-                incidentsRealtimeConnected = false;
-                startIncidentsAutoRefresh();
-            };
-        }
+        function stopIncidentsAutoRefresh() { /* auto-refresh eliminado */ }
+        function startIncidentsAutoRefresh() { /* auto-refresh eliminado */ }
+        function stopIncidentsRealtimeUpdates() { /* SSE eliminado */ }
+        function startIncidentsRealtimeUpdates() { /* auto-refresh eliminado */ }
 
         async function renderApp() {
             const container = document.getElementById('app-container');
@@ -769,7 +715,6 @@
                 await refreshUsers();
                 renderApp();
                 await switchTab('dashboard');
-                startIncidentsRealtimeUpdates();
             } catch (err) {
                 console.error('Admin init error:', err);
                 const container = document.getElementById('app-container');
@@ -779,9 +724,7 @@
             }
         };
 
-        window.addEventListener('focus', async () => {
-            await syncIncidentsAndRerender();
-        });
+        // focus refresh disabled
 
         window.addEventListener('storage', async (event) => {
             if (event.key !== 'urbanIncidents') return;
