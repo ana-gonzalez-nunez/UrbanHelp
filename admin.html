@@ -139,13 +139,15 @@
         }
 
         function getStatusBadge(status) {
-            if (window.getStatusBadge) return window.getStatusBadge(status);
             const map = {
                 'pendiente':  ['bg-yellow-100 text-yellow-800', 'Pendiente'],
-                'en-proceso': ['bg-blue-100 text-blue-800',   'En proceso'],
+                'en-proceso': ['bg-blue-100 text-blue-800', 'En proceso'],
                 'resuelta':   ['bg-green-100 text-green-800', 'Resuelta'],
-                'cerrada':    ['bg-gray-100 text-gray-600',   'Cerrada'],
+                'cerrada':    ['bg-gray-100 text-gray-600', 'Cerrada'],
             };
+            const entry = map[status] || ['bg-gray-100 text-gray-600', status || 'Desconocido'];
+            return '<span class="px-2 py-1 rounded-full text-xs font-semibold ' + entry[0] + '">' + entry[1] + '</span>';
+        };
             const [cls, label] = map[status] || ['bg-gray-100 text-gray-600', status || 'Desconocido'];
             return `<span class="px-2 py-1 rounded-full text-xs font-semibold ${cls}">${label}</span>`;
         }
